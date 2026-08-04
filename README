@@ -1,0 +1,370 @@
+Videos plugin for Geeklog 2.1.1
+================================
+
+Development version: 0.17.0
+
+Compatibility
+-------------
+
+* Geeklog 2.1.1
+* PHP 5.6 or later, using PHP 5.6-compatible syntax
+* No plugin-owned database table
+* YouTube Data API v3
+
+Current state
+-------------
+
+The plugin currently provides automated Geeklog installation and upgrades,
+permissions, native configuration, protected JSON storage, YouTube Data API
+v3 searches, quota and cache management, a public catalogue and player,
+pseudonymous qualified-view tracking, local ratings, registered-user history
+and a first catalogue ranking and rotation algorithm.
+
+Registered account retention
+----------------------------
+
+Video views, ratings and personal recommendations linked to a registered
+Geeklog account are retained without an automatic expiration date. They are
+deleted only when the user explicitly requests deletion or when the Geeklog
+account itself is explicitly deleted.
+
+The plugin stores a keyed pseudonymous account hash, never the Geeklog user ID,
+name or email address in its JSON data files.
+
+Database policy
+---------------
+
+The plugin creates no database table. Geeklog's existing core tables are still
+used by Geeklog itself to register the plugin, permissions, groups and native
+configuration values.
+
+Catalogue ranking
+-----------------
+
+Since version 0.4.0, the catalogue reorders YouTube results already present in
+the JSON cache without making an additional API request. Its score combines:
+
+* original YouTube relevance;
+* a Bayesian local rating;
+* confidence based on the number of ratings;
+* a bonus for videos not watched by the signed-in account;
+* a bonus for priority channels;
+* a small deterministic rotation.
+
+The Bayesian rating uses a prior average of 3.5 out of 5 with a weight of five
+ratings. A video with only one rating therefore cannot immediately dominate
+the catalogue. Rotation changes every six hours and stays stable within the
+same period. The max_same_channel setting is enforced on the ranked list.
+
+Global video ranking
+--------------------
+
+Qualified views update one bounded aggregate JSON file per video. The global
+ranking stores at most 500 entries and is updated incrementally after a view or
+rating. Its score is:
+
+    bayesian rating * 12
+    + min(12, log(rating count + 1) * 4)
+    + min(20, log(view count + 1) * 4)
+    + watch ratio observed when the view qualifies * 15
+    + activity recency (maximum 10, half-life 30 days)
+    + publication recency (maximum 5, half-life 365 days)
+
+The administration can rebuild this ranking from at most 5,000 existing video
+statistic files. A failed aggregate or ranking update never invalidates the
+qualified view or rating that was already stored.
+
+Since version 0.5.3, a single validated playback-end event refines this ratio
+to the completed progress without adding a second view.
+
+Next-video recommendations
+--------------------------
+
+Version 0.6.0 selects next-video candidates from the originating search cache.
+Only the opaque SHA-256 cache key is carried in internal links. If that cache
+is unavailable, the global local ranking is used. The current video is always
+excluded, account history is considered, and the configured channel-diversity
+limit remains active. Suggestions never cause an additional YouTube API call
+and never enable autoplay by themselves.
+
+Since version 0.6.2, watched videos are removed before ranking and channel
+diversity are applied. Registered-account history is excluded without a time
+limit. For an anonymous visitor with tracking enabled and an existing plugin
+cookie, views from the current and previous month are excluded. The plugin
+returns fewer suggestions rather than filling the list with watched videos.
+
+Recommendation signals
+----------------------
+
+Version 0.6.3 records only aggregated accepted and skipped counters for each
+suggested video. Signals require a valid playback token and are limited to 60
+events per pseudonymous visitor per hour. They contain the source and target
+video IDs but no clear IP address. The ranking contribution is bounded:
+
+    min(10, log(accepted + 1) * 3)
+    - min(10, log(skipped + 1) * 2)
+
+Navigation proceeds after the response or after 800 milliseconds, so a failed
+statistics write cannot trap the visitor on the current page.
+
+YouTube player modes
+--------------------
+
+Version 0.6.4 provides two compliant player modes. Standard uses controls=1
+and fs=1. Minimal uses controls=0 and fs=0, which removes the control bar and
+fullscreen button but also removes direct access to progress, volume and
+captions. Both modes use rel=0, playsinline=1, iv_load_policy=3,
+enablejsapi=1 and a validated origin. The plugin does not overlay, obscure or
+block YouTube branding, links or final recommendations. YouTube retains
+control of those elements.
+
+Local channel ranking
+---------------------
+
+Version 0.7.0 derives a bounded local channel ranking from the global video
+ranking without an additional YouTube API request. It aggregates at most the
+500 retained video entries into at most 250 channels. Its score is:
+
+    Bayesian channel rating with a 3.5/5 prior of 10 ratings * 12
+    + rating confidence, capped at 12
+    + view volume, capped at 18
+    + average qualified watch ratio * 15
+    + diversity of distinct videos rated at least 4/5, capped at 12
+    + number of highly ranked videos, capped at 10
+    + activity recency, capped at 10 with a 30-day half-life
+
+The ranking is rebuilt incrementally whenever the global video ranking changes
+and can also be reconstructed from the administration page. Because no SQL
+table is used, channel statistics only cover videos retained in the bounded
+global ranking; they are local indicators rather than exhaustive analytics.
+
+Administration layout
+---------------------
+
+Version 0.7.1 presents administration information in responsive, theme-neutral
+sections. Status indicators use a flexible grid, forms retain usable labels and
+touch targets, and wide maintenance or ranking tables scroll horizontally on
+small screens. This release changes presentation only.
+
+Public rankings
+---------------
+
+Version 0.8.0 adds a read-only rankings.php page for every visitor. It reads
+the bounded local JSON rankings and cached thumbnails without making a YouTube
+API call. Administrators can disable the complete page, the video list, or the
+channel list independently and can limit each public list from 1 to 50 items.
+Blocked video and channel IDs are filtered again when the page is rendered.
+
+Since version 0.8.1, the public page displays videos and channels in separate
+accessible tabs. Only the selected ranking and its cached thumbnails are read.
+Disabled ranking types are omitted, and the remaining type becomes the default.
+
+Account data controls
+---------------------
+
+Version 0.9.0 completes the registered-user privacy controls on history.php.
+When allowed by configuration, a signed-in user can download a CSRF-protected
+JSON export containing profile preferences, ratings, recommendations and all
+monthly view records. The export contains no Geeklog user ID, name, email
+address, IP address, HMAC secret or YouTube API key.
+
+Explicit deletion requires a checkbox, a browser confirmation and a valid CSRF
+token. It removes the pseudonymous account files and the user's individual
+rating entries. Rating aggregates and video/channel rankings are then rebuilt.
+Non-identifying aggregate view totals cannot be attributed back to one account
+and are retained. Without this explicit action, registered-account data remains
+stored without automatic expiration.
+
+Geeklog block
+-------------
+
+Version 0.10.0 implements the optional dynamic Geeklog block. It can display
+recommended, top-rated, most-watched, recently active videos, or the best local
+channels. The block reads only bounded JSON rankings and cached thumbnails and
+never triggers a YouTube API call. Blocked IDs and the configured maximum number
+of videos from one channel are enforced. The item count is configurable from
+1 to 10 and defaults to 3.
+
+Version 0.10.1 displays each block title below its thumbnail and limits the
+visible label to six words while retaining the complete title as a tooltip.
+The catalogue link is centered. During upgrades, the existing block_mode
+configuration row is safely converted from a text field to Geeklog selection
+array 3 without deleting the row or changing its saved value.
+
+Version 0.10.2 gives every block mode a distinct title and displays the signal
+that explains the ordering. Recommended uses the combined local score; rated
+uses the Bayesian weighted rating; watched uses qualified local views; recent
+uses the latest local viewing date; and channels use the local channel score.
+The configuration labels now state these semantics explicitly.
+
+Version 0.10.3 uses the configured public_title as the outer title of every
+Geeklog block mode. A short inner label identifies the selected information
+type. Per-item statistics are no longer rendered, while the sorting algorithms
+remain unchanged. The best-channel mode uses a compact ranked list.
+
+Version 0.10.4 adds a random video block mode. It shuffles only the bounded
+video entries already present in the local JSON ranking, then applies blocked
+video and channel filters and the configured per-channel diversity limit.
+It performs no YouTube API request and no JSON write.
+
+Version 0.10.5 adds a random-mode option. On every dynamic block generation it
+uniformly chooses one of the six existing modes: recommended, weighted rating,
+qualified views, recent local activity, random videos, or best channels. The
+inner block label identifies the mode that was actually selected. Each selected
+mode keeps its normal filtering and ranking behavior.
+
+Video availability
+------------------
+
+Version 0.11.0 activates the JSON availability cache. Every videos.list detail
+response already made after a search records whether each requested video is
+public and embeddable. Requested IDs omitted by the response are marked as
+not_found_or_private. No availability request is made while rendering a page.
+
+Known unavailable videos are removed from cached searches, next-video
+suggestions, public rankings, the Geeklog block and the watch page. A later
+valid API response restores availability. The check lifetime defaults to 24
+hours; unavailable status remains protective beyond expiration until refreshed.
+
+Moderation
+----------
+
+Version 0.12.0 adds a CSRF-protected moderation page requiring the existing
+videos.moderate permission. Decisions are stored as one bounded JSON document
+per video or channel under moderation/videos and moderation/channels. Returning
+an item to neutral deletes its decision file.
+
+Videos can be blocked. Channels can be allowed, prioritized, blocked, disabled
+or returned to neutral. Blocked and disabled content is immediately excluded
+from fresh or cached searches, playback, next-video suggestions, public
+rankings and the Geeklog block. Priority channels are merged with the legacy
+configuration preference. Existing configuration block lists remain enforced
+and therefore take precedence over an "allowed" moderation record.
+
+Version 0.12.1 adds quick "Block video" and "Block channel" actions to the
+public watch page for administrators holding the videos.moderate right. Both
+actions use Geeklog CSRF protection, require confirmation, write to the same
+segmented moderation JSON storage and return the moderator to the catalogue.
+
+Version 0.12.2 isolates quick moderation on a dedicated confirmation page.
+Geeklog 2.1.1 security tokens are single-use, so playback AJAX events can no
+longer consume the token used by a later moderation decision.
+
+Version 0.13.0 makes manual channel management understandable without finding
+a technical YouTube identifier first. The moderation page lists up to 500
+channels already known from cached channels.list responses, sorted by visible
+channel name. The UC identifier remains visible and an advanced manual entry
+is retained as a fallback. Building this list never triggers a YouTube API call.
+
+Version 0.14.0 adds an optional short-form exclusion policy. Because YouTube
+Data API v3 has no reliable Shorts flag, the policy conservatively excludes
+every video at or below a configurable duration (180 seconds by default).
+It is disabled by default and is enforced for searches, cached catalogues,
+recommendations, public video rankings and the Geeklog video block.
+
+Version 0.14.1 adds a recommended "probable Shorts" mode. It excludes a video
+under the configured duration only when its title, description or tags contain
+an explicit Shorts marker. The previous duration-only behavior remains
+available as strict mode.
+
+Version 0.15.0 adds a bounded permanent catalogue pool stored in
+rankings/permanent_pool.json. By default it retains up to 24 videos, reserves
+up to 25 percent of the catalogue, and automatically admits videos with at
+least three ratings and a Bayesian weighted rating of 4.0/5. Administrators
+can pin, remove, exclude, readmit and rebuild entries. Availability,
+moderation, blocked lists, Shorts filtering and channel diversity always take
+precedence. A successful new rating marks the pool for lazy reconstruction.
+
+Version 0.15.1 adds a bounded compatible-cache fallback. When the exact search
+cache is unavailable and YouTube or the local quota prevents a refresh, the
+plugin inspects at most 500 cached searches and selects the newest unexpired
+stale entry with the same query, order, SafeSearch, language, region,
+publication date, category and remote channel filter. Current local duration,
+Shorts, allow/block and moderation rules are reapplied. The filtered result is
+stored under the current key for five minutes, without another API call.
+
+Version 0.16.0 adds server-side SEO metadata for public pages without exposing
+the YouTube API key or making additional API calls. Valid watch pages receive
+a stable canonical URL, a cleaned or factual meta description, Open Graph and
+Twitter Card metadata, and schema.org VideoObject JSON-LD built from cached
+YouTube details. Catalogue pagination and each public ranking tab use
+self-referencing canonical URLs. Empty, disabled, unavailable and personal
+history pages are marked noindex. The new SEO configuration tab controls
+catalogue and ranking indexation, structured data, social metadata and an
+optional generic fallback description. Clean URLs, AggregateRating and video
+sitemaps remain outside this release.
+
+Version 0.16.1 makes robots directives unambiguous after removal of a
+theme-level robots tag. Indexable public pages allow full text, image and video
+previews. Personal history and unavailable pages output only noindex,follow;
+Videos administration pages output only noindex,nofollow. Private pages no
+longer receive canonical, Open Graph or Twitter metadata.
+
+This version also adds three separately configurable visible FAQ areas. The
+first non-empty catalogue page explains selection, updates, ratings and
+privacy. Each ranking tab explains its own local calculation. Valid watch
+pages expose factual information derived from cached video and rating data.
+The accessible details/summary markup works without JavaScript. Optional
+FAQPage JSON-LD exactly mirrors visible answers, is never added to noindex
+pages and remains disabled by default.
+
+Version 0.16.2 completes both Geeklog 2.1.1 administration integrations. The
+Videos entry is exposed through plugin_getadminoption_videos in the permanent
+administration menu and through plugin_cclabel_videos in the Plugins section
+of the administration home page. Both entries require videos.admin and name
+the Videos Admin group. A bundled SVG replaces the previously missing PNG.
+
+Configuration initialization is now idempotent. Installation and the
+0.16.1-to-0.16.2 update inspect every expected subgroup, tab, fieldset and
+parameter. Missing entries are created with the current installation default;
+existing administrator values are never overwritten. At runtime, defaults are
+also merged beneath stored values so a missing optional entry cannot break a
+request before the repair has run.
+
+Version 0.16.3 lets a visitor delete one active rating without deleting the
+corresponding viewing history. Registered accounts can do so directly from My
+Videos with Geeklog CSRF protection. Registered and anonymous visitors can
+also remove their current rating from a watch page after the pseudonymous
+playback token has been established. The operation is rate-limited and
+idempotent. It updates the segmented rating file and, for accounts, the
+personal rating index, then rebuilds rating statistics, video and channel
+rankings and marks the permanent pool for recalculation.
+
+Version 0.16.4 fixes fresh automated installation after the idempotent
+configuration work. Geeklog loads install_defaults.php from inside
+plugin_load_configuration_videos, so a plain assignment created
+$_VID_DEFAULT in the caller's local scope. Defaults are now assigned explicitly
+through $GLOBALS and validated before use. Fresh installation also has a
+restricted recovery mode: while the plugin is not yet registered, existing
+null or empty values left by a failed installation are restored only when the
+expected default is non-empty. Normal upgrades never replace an existing
+administrator value.
+
+Version 0.16.5 removes the remaining dependency on the lifetime of the
+temporary $_VID_DEFAULT global during Geeklog autoinstallation. An immutable
+JSON copy of the defaults is created when install_defaults.php first runs and
+videos_default_configuration() can reconstruct the array after Geeklog
+reinitializes configuration. Both operands are validated before array_merge,
+so a missing transient global can no longer abort a fresh installation.
+
+Version 0.17.0 adds a shared discovery reservoir designed for a catalogue of
+several hundred videos. Compact references are distributed over ten bounded
+JSON files while full records continue to use the existing per-video cache.
+The default capacity is 500 references and the public catalogue exposes up to
+300 of them through pagination. A manual seed can run eight distinct searches
+of 50 results; duplicates, blocked content, unavailable videos and the active
+Shorts policy are filtered. This initial operation costs about 800 YouTube
+quota units and is therefore explicit in administration.
+
+Renewal is lazy and shared: at most one search is attempted every 24 hours by
+default, never one search per visitor. Part of the discovery queries uses
+order=date plus publishedAfter, while the remainder uses relevance, views and
+rating with controlled keyword subsets. The displayed reservoir targets 30%
+videos published during the last 12 months and rotates deterministically each
+UTC day. If quota or YouTube is unavailable, the existing reservoir remains
+usable. Administrators can configure capacity, catalogue size, seed search
+count, refresh interval, recent-video percentage and recent age window.
+
+Each record stores a bounded internal reason, UTC date and keyed hash of the
+moderating Geeklog account. It stores no administrator name, email or clear
+user ID. Technical logging remains limited and contains only entity IDs.

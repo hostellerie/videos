@@ -1,0 +1,27 @@
+# Local Codex/agent metadata
+.agents/
+.codex/
+
+# Generated release packages
+videos_*.tar.gz
+
+# Environment files and local secrets
+.env
+.env.*
+!.env.example
+
+# Runtime and diagnostic output
+*.log
+*.tmp
+*.cache
+
+# Editor and OS metadata
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"
+     viewBox="0 0 48 48" role="img" aria-labelledby="title">
+  <title id="title">Videos</title>
+  <rect x="3" y="8" width="42" height="32" rx="6" fill="#c62828"/>
+  <path d="M20 16l13 8-13 8z" fill="#fff"/>
+</svg>
