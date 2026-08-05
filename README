@@ -1,13 +1,13 @@
-Videos plugin for Geeklog 2.1.1
-================================
+Videos plugin for Geeklog 2.1.1 to 2.2.2
+========================================
 
-Development version: 0.17.0
+Development version: 0.17.1
 
 Compatibility
 -------------
 
-* Geeklog 2.1.1
-* PHP 5.6 or later, using PHP 5.6-compatible syntax
+* Geeklog 2.1.1 through 2.2.2
+* PHP 5.6 through PHP 8.1, using PHP 5.6-compatible syntax
 * No plugin-owned database table
 * YouTube Data API v3
 
@@ -37,6 +37,36 @@ Database policy
 The plugin creates no database table. Geeklog's existing core tables are still
 used by Geeklog itself to register the plugin, permissions, groups and native
 configuration values.
+
+Persistent JSON storage
+-----------------------
+
+Since version 0.17.1, persistent plugin data is stored beside Geeklog's
+path_data directory rather than inside it. Geeklog 2.2.2 clearctl.php cleans
+almost all children of path_data, which could otherwise remove API secrets,
+ratings, history, moderation and rankings when an administrator selected
+Clear Cache.
+
+The default path is derived independently for every site by removing the
+trailing separator from path_data and appending "-videos". Examples:
+
+    path_data = /private/data/S1/
+    Videos    = /private/data/S1-videos/
+
+    path_data = /private/data/S2/
+    Videos    = /private/data/S2-videos/
+
+A site may optionally define an absolute custom location before Geeklog loads
+the plugin:
+
+    $_CONF['videos_data_path'] = '/private/persistent/S1/videos/';
+
+Relative paths, parent traversal and locations inside path_data are rejected.
+On first load after upgrading, valid files from the former path_data/videos/
+directory are copied atomically under a global migration lock. Existing valid
+destination files are not overwritten. Corrupt files are left in the legacy
+directory and recreated safely when needed. The complete legacy directory is
+preserved as a backup and is never removed automatically.
 
 Catalogue ranking
 -----------------
@@ -364,6 +394,14 @@ videos published during the last 12 months and rotates deterministically each
 UTC day. If quota or YouTube is unavailable, the existing reservoir remains
 usable. Administrators can configure capacity, catalogue size, seed search
 count, refresh interval, recent-video percentage and recent age window.
+
+Version 0.17.1 protects all persistent plugin data from Geeklog 2.2.2's native
+Clear Cache operation. Each site's path_data produces its own sibling Videos
+directory, preserving multisite isolation. An optional absolute override is
+supported. The old path_data/videos tree is migrated with shared locking,
+bounded reads, JSON validation and atomic replacement, and remains untouched
+as a recovery copy. The administration status displays active and legacy
+paths plus the first migration result.
 
 Each record stores a bounded internal reason, UTC date and keyed hash of the
 moderating Geeklog account. It stores no administrator name, email or clear

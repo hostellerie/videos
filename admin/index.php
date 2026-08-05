@@ -223,6 +223,7 @@ $channelRanking = new Videos_ChannelRanking(
 );
 $globalChannelRanking = $channelRanking->getGlobal(10);
 $apiKeyConfigured = $bootstrap->getYouTubeApiKey() !== '';
+$storageMigration = $bootstrap->getMigrationStatus();
 $token = SEC_createToken();
 
 $html = '<div class="videos-admin"><h1>'
@@ -272,6 +273,25 @@ $html .= '</section>';
 $html .= '<section class="videos-admin-section"><h2>État</h2>'
     . '<ul class="videos-admin-status">'
     . '<li>Stockage JSON : ' . ($bootstrap->isReady() ? 'prêt' : 'erreur') . '</li>'
+    . '<li>' . htmlspecialchars(
+        $LANG_VIDEOS['storage_active_path'], ENT_QUOTES, 'UTF-8'
+    ) . ' : <code>' . htmlspecialchars(
+        $bootstrap->getDataRoot(), ENT_QUOTES, 'UTF-8'
+    ) . '</code></li>'
+    . '<li>' . htmlspecialchars(
+        $LANG_VIDEOS['storage_legacy_path'], ENT_QUOTES, 'UTF-8'
+    ) . ' : <code>' . htmlspecialchars(
+        $bootstrap->getLegacyDataRoot(), ENT_QUOTES, 'UTF-8'
+    ) . '</code></li>'
+    . (!empty($storageMigration['attempted'])
+        ? '<li>' . htmlspecialchars(
+            $LANG_VIDEOS['storage_migration_result'], ENT_QUOTES, 'UTF-8'
+        ) . ' : ' . sprintf(
+            $LANG_VIDEOS['storage_migration_counts'],
+            (int) $storageMigration['copied'],
+            (int) $storageMigration['skipped'],
+            (int) $storageMigration['failed']
+        ) . '</li>' : '')
     . '<li>Clé API : ' . ($apiKeyConfigured ? 'configurée' : 'absente') . '</li>'
     . '<li>Recherches aujourd’hui : '
     . (isset($counts['search']) ? (int) $counts['search'] : 0) . '</li>'

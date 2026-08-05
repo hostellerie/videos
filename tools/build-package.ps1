@@ -54,6 +54,7 @@ New-Item -ItemType Directory -Path $stagePlugin | Out-Null
 
 $excludedRootNames = @(
     ".git",
+    ".gitignore",
     ".agents",
     ".codex",
     ".package-stage",
@@ -64,7 +65,7 @@ Get-ChildItem -LiteralPath $pluginRoot -Force | ForEach-Object {
     if ($excludedRootNames -contains $_.Name) {
         return
     }
-    if ($_.Name -match '^videos_[0-9]+\.[0-9]+\.[0-9]+_[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz$') {
+    if ($_.Name -match '^videos_[0-9]+\.[0-9]+\.[0-9]+_[0-9]+\.[0-9]+\.[0-9]+(?:-r[0-9]+)?\.tar\.gz$') {
         return
     }
     Copy-Item -LiteralPath $_.FullName -Destination $stagePlugin -Recurse
@@ -112,6 +113,14 @@ foreach ($entry in $required) {
 }
 if ($archiveEntries | Where-Object { $_ -notmatch '^videos(?:/|$)' }) {
     throw "Archive contains an entry outside the videos/ root."
+}
+$unsafeEntries = $archiveEntries | Where-Object {
+    $_ -match '(^|/)\.(?:gitignore|git|agents|codex)(?:/|$)' -or
+    $_ -match '^videos/tools(?:/|$)' -or
+    $_ -notmatch '^[A-Za-z0-9_./-]+$'
+}
+if ($unsafeEntries) {
+    throw "Archive contains unsafe entries: $($unsafeEntries -join ', ')"
 }
 
 Remove-Item -LiteralPath $stageRoot -Recurse -Force

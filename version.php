@@ -5,7 +5,7 @@ if (!isset($_CONF)) {
 }
 
 if (!defined('VIDEOS_PLUGIN_VERSION')) {
-    define('VIDEOS_PLUGIN_VERSION', '0.17.0');
+    define('VIDEOS_PLUGIN_VERSION', '0.17.1');
 }
 if (!defined('VIDEOS_MIN_GEEKLOG_VERSION')) {
     define('VIDEOS_MIN_GEEKLOG_VERSION', '2.1.1');

@@ -234,8 +234,18 @@ $GLOBALS['VIDEOS_UPDATES'] = array(
     '0.16.5' => array(
         'next' => '0.17.0',
         'callback' => 'videos_update_0_16_5_to_0_17_0'
+    ),
+    '0.17.0' => array(
+        'next' => '0.17.1',
+        'callback' => 'videos_update_0_17_0_to_0_17_1'
     )
 );
+
+function videos_update_0_17_0_to_0_17_1()
+{
+    // Loading the plugin already performs the idempotent storage migration.
+    return true;
+}
 
 function videos_update_0_16_5_to_0_17_0()
 {

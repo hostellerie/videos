@@ -80,8 +80,10 @@ $html = '<div class="videos-repair"><h1>Réparation du plugin Videos</h1>';
 if ($message !== '') {
     $html .= COM_showMessageText($message, '', true);
 }
-$html .= '<p>Cette page ne supprime jamais le dossier '
-    . '<code>data/videos/</code>.</p>'
+$html .= '<p>Cette page ne supprime jamais les données JSON persistantes '
+    . 'du plugin, qu’elles se trouvent dans l’ancien dossier '
+    . '<code>path_data/videos/</code> ou dans le nouveau dossier frère '
+    . '<code>path_data-videos/</code>.</p>'
     . '<h2>Diagnostic</h2><ul>'
     . '<li>Plugin enregistré : ' . ($pluginCount > 0 ? 'oui' : 'non') . '</li>'
     . '<li>Groupe Videos Admin : ' . (!empty($groupId) ? 'présent' : 'absent') . '</li>'
