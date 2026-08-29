@@ -57,7 +57,7 @@ function plugin_urltoid_videos($url)
             ? array('type' => 'videos', 'id' => $id, 'subtype' => 'video')
             : array();
     }
-    if (substr($path, -18) === '/videos/channel.php') {
+    if (substr($path, -19) === '/videos/channel.php') {
         $id = isset($query['id']) ? (string) $query['id'] : '';
         return Videos_Validator::youtubeChannelId($id)
             ? array('type' => 'videos', 'id' => 'channel:' . $id, 'subtype' => 'channel')
@@ -154,7 +154,7 @@ function VIDEOS_itemInfoRecord($videoId, $bootstrap, $poolItem = array())
 
 function VIDEOS_structureInfoRecord($id, $bootstrap)
 {
-    global $_CONF, $LANG_VIDEOS;
+    global $LANG_VIDEOS;
     $now = gmdate('Y-m-d\\TH:i:s\\Z');
     if ($id === 'catalogue') {
         return array('id' => $id, 'type' => 'videos', 'subtype' => 'collection',
