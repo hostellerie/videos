@@ -32,23 +32,27 @@ class Videos_Seo
         if ($page > 1) {
             $canonical .= '?page=' . $page;
         }
+        $title = $this->cleanText($publicTitle, 160);
+        if ($page > 1) {
+            $title .= $this->isFrench()
+                ? ' – Page ' . $page
+                : ' – Page ' . $page;
+        }
         $description = $this->configuredDescription(
             $this->isFrench()
-                ? sprintf(
-                    'Découvrez le catalogue vidéo sélectionné par %s.',
-                    $siteLabel
-                )
-                : sprintf(
-                    'Discover the video catalogue selected by %s.',
-                    $siteLabel
-                )
+                ? sprintf('Découvrez le catalogue vidéo sélectionné par %s.', $siteLabel)
+                : sprintf('Discover the video catalogue selected by %s.', $siteLabel)
         );
+        if ($page > 1) {
+            $description .= $this->isFrench()
+                ? ' Page ' . $page . '.'
+                : ' Page ' . $page . '.';
+        }
         return $this->header(
             $canonical,
-            $publicTitle,
+            $title,
             $description,
-            !empty($this->configuration['seo_catalogue_index']) &&
-                $hasContent,
+            !empty($this->configuration['seo_catalogue_index']) && $hasContent,
             '',
             '',
             ''
@@ -58,14 +62,12 @@ class Videos_Seo
     public function rankings($title, $description, $tab, $hasContent)
     {
         $tab = $tab === 'channels' ? 'channels' : 'videos';
-        $canonical = $this->siteUrl . '/videos/rankings.php?tab='
-            . rawurlencode($tab);
+        $canonical = $this->siteUrl . '/videos/rankings.php?tab=' . rawurlencode($tab);
         return $this->header(
             $canonical,
             $title,
             $this->cleanText($description, 300),
-            !empty($this->configuration['seo_rankings_index']) &&
-                $hasContent,
+            !empty($this->configuration['seo_rankings_index']) && $hasContent,
             '',
             '',
             ''
@@ -89,19 +91,16 @@ class Videos_Seo
 
     public function video($videoId, $video, $description, $embedUrl)
     {
-        if (!Videos_Validator::youtubeVideoId($videoId) ||
-            !is_array($video)) {
+        if (!Videos_Validator::youtubeVideoId($videoId) || !is_array($video)) {
             return $this->unavailableVideo($videoId);
         }
-        $snippet = isset($video['snippet']) &&
-            is_array($video['snippet'])
+        $snippet = isset($video['snippet']) && is_array($video['snippet'])
             ? $video['snippet'] : array();
         $title = isset($snippet['title'])
             ? $this->cleanText($snippet['title'], 180) : $videoId;
         $channel = isset($snippet['channelTitle'])
             ? $this->cleanText($snippet['channelTitle'], 120) : '';
-        $canonical = $this->siteUrl . '/videos/watch.php?v='
-            . rawurlencode($videoId);
+        $canonical = $this->siteUrl . '/videos/watch.php?v=' . rawurlencode($videoId);
         $description = $this->cleanText($description, 300);
         if ($description === '') {
             $description = $this->videoFallbackDescription(
@@ -135,15 +134,8 @@ class Videos_Seo
         );
     }
 
-    private function header(
-        $canonical,
-        $title,
-        $description,
-        $index,
-        $image,
-        $videoUrl,
-        $structuredData
-    ) {
+    private function header($canonical, $title, $description, $index, $image, $videoUrl, $structuredData)
+    {
         if (!$index) {
             return $this->robots(false, true);
         }
@@ -155,25 +147,16 @@ class Videos_Seo
         $description = $this->cleanText($description, 300);
         $header = $this->robots(true, true);
         if ($canonical !== '') {
-            $header .= '<link rel="canonical" href="'
-                . $this->escape($canonical) . '">' . "\n";
+            $header .= '<link rel="canonical" href="' . $this->escape($canonical) . '">' . "\n";
         }
         if ($description !== '') {
-            $header .= '<meta name="description" content="'
-                . $this->escape($description) . '">' . "\n";
+            $header .= '<meta name="description" content="' . $this->escape($description) . '">' . "\n";
         }
         if (!empty($this->configuration['seo_social_metadata'])) {
-            $header .= $this->socialMetadata(
-                $canonical,
-                $title,
-                $description,
-                $image,
-                $videoUrl
-            );
+            $header .= $this->socialMetadata($canonical, $title, $description, $image, $videoUrl);
         }
         if ($structuredData !== '') {
-            $header .= '<script type="application/ld+json">'
-                . $structuredData . '</script>' . "\n";
+            $header .= '<script type="application/ld+json">' . $structuredData . '</script>' . "\n";
         }
         return $header;
     }
@@ -185,17 +168,11 @@ class Videos_Seo
                 . ($follow ? 'follow' : 'nofollow') . '">' . "\n";
         }
         return '<meta name="robots" content="index,follow,'
-            . 'max-snippet:-1,max-image-preview:large,'
-            . 'max-video-preview:-1">' . "\n";
+            . 'max-snippet:-1,max-image-preview:large,max-video-preview:-1">' . "\n";
     }
 
-    private function socialMetadata(
-        $canonical,
-        $title,
-        $description,
-        $image,
-        $videoUrl
-    ) {
+    private function socialMetadata($canonical, $title, $description, $image, $videoUrl)
+    {
         $header = '<meta property="og:type" content="'
             . ($videoUrl !== '' ? 'video.other' : 'website') . '">' . "\n";
         $properties = array(
@@ -211,6 +188,10 @@ class Videos_Seo
                     . $this->escape($value) . '">' . "\n";
             }
         }
+        if ($image !== '' && $title !== '') {
+            $header .= '<meta property="og:image:alt" content="'
+                . $this->escape($title) . '">' . "\n";
+        }
         if ($videoUrl !== '') {
             $safeVideoUrl = $this->safeUrl($videoUrl);
             if ($safeVideoUrl !== '') {
@@ -218,44 +199,33 @@ class Videos_Seo
                     . $this->escape($safeVideoUrl) . '">' . "\n"
                     . '<meta property="og:video:secure_url" content="'
                     . $this->escape($safeVideoUrl) . '">' . "\n"
-                    . '<meta property="og:video:type" '
-                    . 'content="text/html">' . "\n";
+                    . '<meta property="og:video:type" content="text/html">' . "\n";
             }
         }
         $header .= '<meta name="twitter:card" content="'
-            . ($image !== '' ? 'summary_large_image' : 'summary')
-            . '">' . "\n";
+            . ($image !== '' ? 'summary_large_image' : 'summary') . '">' . "\n";
         if ($title !== '') {
-            $header .= '<meta name="twitter:title" content="'
-                . $this->escape($title) . '">' . "\n";
+            $header .= '<meta name="twitter:title" content="' . $this->escape($title) . '">' . "\n";
         }
         if ($description !== '') {
-            $header .= '<meta name="twitter:description" content="'
-                . $this->escape($description) . '">' . "\n";
+            $header .= '<meta name="twitter:description" content="' . $this->escape($description) . '">' . "\n";
         }
         if ($image !== '') {
-            $header .= '<meta name="twitter:image" content="'
-                . $this->escape($image) . '">' . "\n";
+            $header .= '<meta name="twitter:image" content="' . $this->escape($image) . '">' . "\n";
+            if ($title !== '') {
+                $header .= '<meta name="twitter:image:alt" content="' . $this->escape($title) . '">' . "\n";
+            }
         }
         return $header;
     }
 
-    private function videoObject(
-        $videoId,
-        $video,
-        $title,
-        $description,
-        $thumbnail,
-        $canonical,
-        $embedUrl
-    ) {
-        $snippet = isset($video['snippet']) &&
-            is_array($video['snippet'])
+    private function videoObject($videoId, $video, $title, $description, $thumbnail, $canonical, $embedUrl)
+    {
+        $snippet = isset($video['snippet']) && is_array($video['snippet'])
             ? $video['snippet'] : array();
         $published = isset($snippet['publishedAt'])
             ? $this->isoDate($snippet['publishedAt']) : '';
-        if ($title === '' || $description === '' ||
-            $thumbnail === '' || $published === '') {
+        if ($title === '' || $description === '' || $thumbnail === '' || $published === '') {
             return '';
         }
         $data = array(
@@ -265,6 +235,7 @@ class Videos_Seo
             'description' => $description,
             'thumbnailUrl' => array($thumbnail),
             'uploadDate' => $published,
+            'url' => $canonical,
             'embedUrl' => $this->safeUrl($embedUrl),
             'mainEntityOfPage' => $canonical
         );
@@ -283,14 +254,10 @@ class Videos_Seo
         );
     }
 
-    private function videoFallbackDescription(
-        $title,
-        $channel,
-        $duration
-    ) {
+    private function videoFallbackDescription($title, $channel, $duration)
+    {
         $site = $this->siteName !== ''
-            ? $this->siteName
-            : ($this->isFrench() ? 'ce site' : 'this site');
+            ? $this->siteName : ($this->isFrench() ? 'ce site' : 'this site');
         if ($this->isFrench()) {
             $text = 'Regardez « ' . $title . ' »';
             if ($channel !== '') {
@@ -310,32 +277,24 @@ class Videos_Seo
                 $text .= ' Duration: ' . $this->humanDuration($duration) . '.';
             }
         }
-        return $this->configuredDescription($text);
+        return $this->cleanText($text, 300);
     }
 
     private function configuredDescription($fallback)
     {
         $configured = isset($this->configuration['seo_description_fallback'])
-            ? $this->cleanText(
-                $this->configuration['seo_description_fallback'],
-                300
-            ) : '';
-        return $configured !== '' ? $configured
-            : $this->cleanText($fallback, 300);
+            ? $this->cleanText($this->configuration['seo_description_fallback'], 300) : '';
+        return $configured !== '' ? $configured : $this->cleanText($fallback, 300);
     }
 
     private function thumbnail($snippet)
     {
-        if (!isset($snippet['thumbnails']) ||
-            !is_array($snippet['thumbnails'])) {
+        if (!isset($snippet['thumbnails']) || !is_array($snippet['thumbnails'])) {
             return '';
         }
-        foreach (array('maxres', 'standard', 'high', 'medium', 'default')
-            as $size) {
+        foreach (array('maxres', 'standard', 'high', 'medium', 'default') as $size) {
             if (isset($snippet['thumbnails'][$size]['url'])) {
-                $url = $this->safeUrl(
-                    $snippet['thumbnails'][$size]['url']
-                );
+                $url = $this->safeUrl($snippet['thumbnails'][$size]['url']);
                 if ($url !== '') {
                     return $url;
                 }
@@ -347,8 +306,7 @@ class Videos_Seo
     private function safeUrl($value)
     {
         $value = trim((string) $value);
-        if ($value === '' ||
-            !preg_match('#^https?://[^\s<>"\']+$#i', $value)) {
+        if ($value === '' || !preg_match('#^https?://[^\s<>"\']+$#i', $value)) {
             return '';
         }
         return $value;
@@ -356,11 +314,7 @@ class Videos_Seo
 
     private function cleanText($value, $maximum)
     {
-        $value = html_entity_decode(
-            strip_tags((string) $value),
-            ENT_QUOTES,
-            'UTF-8'
-        );
+        $value = html_entity_decode(strip_tags((string) $value), ENT_QUOTES, 'UTF-8');
         $value = trim(preg_replace('/\s+/u', ' ', $value));
         if (function_exists('mb_substr')) {
             return mb_substr($value, 0, $maximum, 'UTF-8');
@@ -382,8 +336,7 @@ class Videos_Seo
         $remaining = $seconds % 60;
         return 'PT' . ($hours > 0 ? $hours . 'H' : '')
             . ($minutes > 0 ? $minutes . 'M' : '')
-            . (($remaining > 0 || ($hours === 0 && $minutes === 0))
-                ? $remaining . 'S' : '');
+            . (($remaining > 0 || ($hours === 0 && $minutes === 0)) ? $remaining . 'S' : '');
     }
 
     private function humanDuration($seconds)
