@@ -31,6 +31,15 @@ jobs:
           set -euo pipefail
           git pull --ff-only origin "${GITHUB_REF_NAME}"
 
+      - name: Lint PHP sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            php -l "$file" >/dev/null
+          done < <(find . -type f \( -name '*.php' -o -name '*.inc' \) \
+            -not -path './.git/*' -not -path './dist/*' -print0)
+
       - name: Build installable ZIP
         shell: bash
         run: |
