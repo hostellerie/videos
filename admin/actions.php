@@ -93,7 +93,7 @@ if ($store && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     $rankingItem = isset($global[$videoId]) ? $global[$videoId] : array();
                     $saved = $pool->setManualState($videoId, 'added', $rankingItem);
                     $message = $saved
-                        ? 'Vidéo ajoutée au catalogue permanent et signalée aux consommateurs Geeklog.'
+                        ? 'Vidéo ajoutée au catalogue permanent.'
                         : 'Impossible d’ajouter la vidéo au catalogue permanent.';
                 }
             }
@@ -149,7 +149,12 @@ $html = '<div class="videos-admin"><h1>Videos — Actions</h1>'
     . videos_admin_section_nav($_CONF, 'actions');
 if ($message !== '') {
     $message = VIDEOS_localizeAdminText($message);
-    $html .= COM_showMessageText($message, '', true);
+    if ($message === VIDEOS_localizeAdminText('Vidéo ajoutée au catalogue permanent.')) {
+        $html .= '<p class="videos-admin-help"><strong>'
+            . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</strong></p>';
+    } else {
+        $html .= COM_showMessageText($message, '', true);
+    }
 }
 $html .= '<section class="videos-admin-section"><h2>Curation vidéo</h2>'
     . '<p>Ajoutez directement une vidéo par son ID ou son URL YouTube. Elle est récupérée, mise en cache, ajoutée au catalogue permanent puis signalée via les événements Geeklog.</p>'
