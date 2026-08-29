@@ -20,7 +20,7 @@ $html = '<div class="videos-admin"><h1>'
 
 if (!$bootstrap->isReady()) {
     $html .= COM_showMessageText(
-        'Le stockage du plugin Videos est indisponible. Consultez les outils de réparation.',
+        VIDEOS_localizeAdminText('Le stockage du plugin Videos est indisponible. Consultez les outils de réparation.'),
         '',
         true
     );
@@ -94,6 +94,8 @@ $html .= '<section class="videos-admin-section"><h2>Pages publiques</h2><ul>'
     . '<li><a href="' . htmlspecialchars(plugin_idtourl_videos('', 'rankings:channels'), ENT_QUOTES, 'UTF-8') . '">Classement des chaînes</a></li>'
     . '</ul></section></div>';
 
+$html = VIDEOS_localizeAdminText($html);
+
 echo COM_createHTMLDocument(
     $html,
     array(
@@ -104,7 +106,6 @@ echo COM_createHTMLDocument(
 
 function videos_overview_nav($configuration, $active)
 {
-    global $LANG_VIDEOS;
     global $LANG_VIDEOS;
     $base = $configuration['site_admin_url'] . '/plugins/videos/';
     $items = array(

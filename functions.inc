@@ -599,6 +599,14 @@ function VIDEOS_renderNavigation($active)
     return $html . '</ul></nav>';
 }
 
+function VIDEOS_localizeAdminText($text)
+{
+    global $LANG_VIDEOS_ADMIN_TEXT;
+    if (!is_array($LANG_VIDEOS_ADMIN_TEXT) || $text === '') {
+        return $text;
+    }
+    return strtr((string) $text, $LANG_VIDEOS_ADMIN_TEXT);
+}
 function plugin_getheadercode_videos()
 {
     global $_CONF, $_VIDEOS_CONF;

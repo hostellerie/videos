@@ -169,6 +169,7 @@ $priorityChannels = $moderation ? $moderation->getPriorityChannelIds(100) : arra
 $html = '<div class="videos-admin"><h1>Videos — Actions</h1>'
     . videos_admin_section_nav($_CONF, 'actions');
 if ($message !== '') {
+    $message = VIDEOS_localizeAdminText($message);
     $html .= COM_showMessageText($message, '', true);
 }
 $html .= '<section class="videos-admin-section"><h2>Curation vidéo</h2>'
@@ -289,7 +290,8 @@ $html .= '<section class="videos-admin-section"><h2>Indexation des pages existan
     . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
     . '<button type="submit">Envoyer les pages existantes à IndexNow</button></form></section></div>';
 
-echo COM_createHTMLDocument($html, array('pagetitle' => 'Videos — Actions', 'headercode' => VIDEOS_adminHeaderCode()));
+$html = VIDEOS_localizeAdminText($html);
+echo COM_createHTMLDocument($html, array('pagetitle' => VIDEOS_localizeAdminText('Videos — Actions'), 'headercode' => VIDEOS_adminHeaderCode()));
 
 function videos_actions_test_search($bootstrap, $query, $configuration)
 {
@@ -519,7 +521,6 @@ function videos_admin_action_form($action, $videoId, $label, $token)
 
 function videos_admin_section_nav($configuration, $active)
 {
-    global $LANG_VIDEOS;
     global $LANG_VIDEOS;
     $base = $configuration['site_admin_url'] . '/plugins/videos/';
     $items = array(

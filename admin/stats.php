@@ -16,9 +16,9 @@ if (!SEC_hasRights('videos.admin')) {
 $bootstrap = new Videos_Bootstrap($_CONF);
 if (!$bootstrap->isReady()) {
     echo COM_createHTMLDocument(
-        COM_showMessageText('Le stockage du plugin Videos est indisponible.', '', true),
+        COM_showMessageText(VIDEOS_localizeAdminText('Le stockage du plugin Videos est indisponible.'), '', true),
         array(
-            'pagetitle' => 'Videos — Statistiques',
+            'pagetitle' => VIDEOS_localizeAdminText('Videos — Statistiques'),
             'headercode' => videos_stats_header_code()
         )
     );
@@ -229,17 +229,18 @@ $html .= '<section class="videos-admin-section"><h2>Pages publiques adressables<
     . '</ul><p>Les vidéos permanentes et les chaînes éligibles possèdent '
     . 'également leur propre URL canonique.</p></section></div>';
 
+$html = VIDEOS_localizeAdminText($html);
+
 echo COM_createHTMLDocument(
     $html,
     array(
-        'pagetitle' => 'Videos — Statistiques',
+        'pagetitle' => VIDEOS_localizeAdminText('Videos — Statistiques'),
         'headercode' => videos_stats_header_code()
     )
 );
 
 function videos_stats_nav($configuration, $active)
 {
-    global $LANG_VIDEOS;
     global $LANG_VIDEOS;
     $base = $configuration['site_admin_url'] . '/plugins/videos/';
     $items = array(
@@ -290,7 +291,7 @@ function videos_stats_header_code()
 function videos_stats_date_text($value)
 {
     if (empty($value)) {
-        return 'Jamais';
+        return VIDEOS_localizeAdminText('Jamais');
     }
     $timestamp = strtotime((string) $value);
     if ($timestamp !== false && function_exists('COM_getUserDateTimeFormat')) {
