@@ -135,10 +135,10 @@ $meta = $description !== ''
 $meta = function_exists('MBYTE_substr')
     ? MBYTE_substr($meta, 0, 160) : substr($meta, 0, 160);
 $header = '<link rel="canonical" href="'
-    . htmlspecialchars($canonical, ENT_QUOTES, 'UTF-8') . '">\n'
-    . '<meta name="robots" content="index,follow">\n'
+    . htmlspecialchars($canonical, ENT_QUOTES, 'UTF-8') . '">' . "\n"
+    . '<meta name="robots" content="index,follow">' . "\n"
     . '<meta name="description" content="'
-    . htmlspecialchars($meta, ENT_QUOTES, 'UTF-8') . '">\n'
+    . htmlspecialchars($meta, ENT_QUOTES, 'UTF-8') . '">' . "\n"
     . '<style>'
     . '.videos-channel-header{display:flex;gap:1.25rem;align-items:center;margin:0 0 1.25rem}'
     . '.videos-channel-avatar{width:112px;height:112px;border-radius:50%;object-fit:cover;flex:0 0 112px}'

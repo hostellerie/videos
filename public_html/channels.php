@@ -109,8 +109,8 @@ uasort($channels, function ($left, $right) {
 $canonical = plugin_idtourl_videos('', 'channels');
 $description = $LANG_VIDEOS['channels_meta_description'];
 $header = '<link rel="canonical" href="'
-    . htmlspecialchars($canonical, ENT_QUOTES, 'UTF-8') . '">\n'
-    . '<meta name="robots" content="' . (count($channels) > 0 ? 'index,follow' : 'noindex,follow') . '">\n'
+    . htmlspecialchars($canonical, ENT_QUOTES, 'UTF-8') . '">' . "\n"
+    . '<meta name="robots" content="' . (count($channels) > 0 ? 'index,follow' : 'noindex,follow') . '">' . "\n"
     . '<meta name="description" content="' . htmlspecialchars($description, ENT_QUOTES, 'UTF-8') . '">';
 
 $html = '<div class="videos-page videos-channels-page">'
