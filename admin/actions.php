@@ -238,11 +238,14 @@ if (SEC_hasRights('videos.maintenance')) {
         . '<p><a href="' . htmlspecialchars($_CONF['site_admin_url'] . '/plugins/videos/repair.php', ENT_QUOTES, 'UTF-8') . '">Outils de réparation</a></p></section>';
 }
 
-$html .= '<section class="videos-admin-section"><h2>Indexation des pages existantes</h2>'
-    . '<p>Le rattrapage inventorie les pages publiques puis utilise le mode batch d’IndexNow. Il ne génère pas de faux événements de création pour Hello ou les autres plugins.</p>'
-    . '<form method="post"><input type="hidden" name="videos_action" value="signal_public_pages">'
-    . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
-    . '<button type="submit">Envoyer les pages existantes à IndexNow</button></form></section></div>';
+if (function_exists('send_to_indexnow')) {
+    $html .= '<section class="videos-admin-section"><h2>Indexation des pages existantes</h2>'
+        . '<p>Le rattrapage inventorie les pages publiques et les envoie à IndexNow en mode batch.</p>'
+        . '<form method="post"><input type="hidden" name="videos_action" value="signal_public_pages">'
+        . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
+        . '<button type="submit">Envoyer les pages existantes à IndexNow</button></form></section>';
+}
+$html .= '</div>';
 
 $html = VIDEOS_localizeAdminText($html);
 echo COM_createHTMLDocument($html, array('pagetitle' => VIDEOS_localizeAdminText('Videos — Actions'), 'headercode' => VIDEOS_adminHeaderCode()));
