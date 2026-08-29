@@ -202,9 +202,11 @@ $html .= '</section>';
 
 $youtubeApiKeyConfigured = $bootstrap->getYouTubeApiKey() !== '';
 $html .= '<section class="videos-admin-section"><h2>YouTube Data API</h2>'
-    . '<p><strong>État :</strong> ' . ($youtubeApiKeyConfigured ? 'Clé API configurée.' : 'Clé API absente.') . '</p>'
-    . '<p>Une clé YouTube Data API est nécessaire pour rechercher de nouvelles vidéos et récupérer les données d’une vidéo qui n’est pas encore en cache. Les vidéos déjà mises en cache restent consultables sans nouvel appel API.</p>'
-    . '<form class="videos-admin-form" method="post"><input type="hidden" name="videos_action" value="save_key">'
+    . '<p><strong>État :</strong> ' . ($youtubeApiKeyConfigured ? 'Clé API configurée.' : 'Clé API absente.') . '</p>';
+if (!$youtubeApiKeyConfigured) {
+    $html .= '<p>Une clé YouTube Data API est nécessaire pour rechercher de nouvelles vidéos et récupérer les données d’une vidéo qui n’est pas encore en cache. Les vidéos déjà mises en cache restent consultables sans nouvel appel API.</p>';
+}
+$html .= '<form class="videos-admin-form" method="post"><input type="hidden" name="videos_action" value="save_key">'
     . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
     . '<label>' . ($youtubeApiKeyConfigured ? 'Remplacer la clé API' : 'Ajouter une clé API') . ' <input type="password" name="youtube_api_key" maxlength="200" autocomplete="new-password"></label> '
     . '<button type="submit">' . ($youtubeApiKeyConfigured ? 'Remplacer la clé' : 'Enregistrer la clé') . '</button></form>'

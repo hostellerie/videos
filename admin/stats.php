@@ -229,25 +229,7 @@ if ($seoDiagnostic !== '') {
 }
 $html .= '</section>';
 
-$html .= '<section class="videos-admin-section"><h2>Pages publiques adressables</h2><ul>'
-    . '<li><a href="'
-    . htmlspecialchars(plugin_idtourl_videos('', 'catalogue'), ENT_QUOTES, 'UTF-8')
-    . '">Catalogue</a></li>'
-    . '<li><a href="'
-    . htmlspecialchars(
-        plugin_idtourl_videos('', 'rankings:videos'),
-        ENT_QUOTES,
-        'UTF-8'
-    ) . '">Classement global des vidéos</a></li>'
-    . '<li><a href="'
-    . htmlspecialchars(
-        plugin_idtourl_videos('', 'rankings:channels'),
-        ENT_QUOTES,
-        'UTF-8'
-    ) . '">Classement des chaînes</a></li>'
-    . '</ul><p>Les vidéos permanentes et les chaînes éligibles possèdent '
-    . 'également leur propre URL canonique.</p></section></div>';
-
+$html .= '</div>';
 $html = VIDEOS_localizeAdminText($html);
 
 echo COM_createHTMLDocument(
