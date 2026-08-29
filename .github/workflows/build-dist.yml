@@ -31,12 +31,6 @@ jobs:
           set -euo pipefail
           git pull --ff-only origin "${GITHUB_REF_NAME}"
 
-      - name: Apply availability and channel fixes
-        shell: bash
-        run: |
-          set -euo pipefail
-          php tools/fix-availability-signals-and-channel-ranking.php
-
       - name: Lint PHP sources
         shell: bash
         run: |
@@ -81,7 +75,7 @@ jobs:
           unzip -t "dist/${ARCHIVE}"
           unzip -l "dist/${ARCHIVE}" | head -80
 
-      - name: Commit corrected sources and archive
+      - name: Commit generated archive
         shell: bash
         run: |
           set -euo pipefail
@@ -89,12 +83,12 @@ jobs:
           ARCHIVE="videos_0.18.0_2.1.1.zip"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A interoperability.php classes/Videos_YouTubeService.php public_html/rankings.php dist
+          git add -A dist
 
           if git diff --cached --quiet; then
-            echo "Sources and archive are already up to date."
+            echo "Archive is already up to date."
             exit 0
           fi
 
-          git commit -m "Signal unavailable videos and align channel ranking"
+          git commit -m "Build ${ARCHIVE}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
