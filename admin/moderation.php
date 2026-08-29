@@ -42,8 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ? COM_applyFilter($_POST['entity']) : '';
         $id = isset($_POST['entity_id'])
             ? trim((string) $_POST['entity_id']) : '';
-        if ($entity === 'channel' &&
-            isset($_POST['known_channel_id'])) {
+        if ($entity === 'channel' && isset($_POST['known_channel_id'])) {
             $knownChannelId = COM_applyFilter($_POST['known_channel_id']);
             if (Videos_Validator::youtubeChannelId($knownChannelId)) {
                 $id = $knownChannelId;
@@ -60,19 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
         $saved = false;
         if ($entity === 'video') {
-            $saved = $moderation->setVideoState(
-                $id,
-                $state,
-                $reason,
-                $actorHash
-            );
+            $saved = $moderation->setVideoState($id, $state, $reason, $actorHash);
         } elseif ($entity === 'channel') {
-            $saved = $moderation->setChannelState(
-                $id,
-                $state,
-                $reason,
-                $actorHash
-            );
+            $saved = $moderation->setChannelState($id, $state, $reason, $actorHash);
         }
         if ($saved) {
             $message = $LANG_VIDEOS['moderation_saved'];
@@ -97,18 +86,10 @@ $cache = new Videos_Cache($store);
 $knownChannels = $cache->listKnownChannels(500);
 $token = SEC_createToken();
 
-$html = '<div class="videos-admin"><p><a href="'
-    . htmlspecialchars(
-        $_CONF['site_admin_url'] . '/plugins/videos/index.php',
-        ENT_QUOTES,
-        'UTF-8'
-    ) . '">&larr; ' . htmlspecialchars(
-        $LANG_VIDEOS['admin_title'],
-        ENT_QUOTES,
-        'UTF-8'
-    ) . '</a></p><h1>'
+$html = '<div class="videos-admin"><h1>'
     . htmlspecialchars($LANG_VIDEOS['moderation_title'], ENT_QUOTES, 'UTF-8')
-    . '</h1>';
+    . '</h1>'
+    . videos_moderation_nav($_CONF, 'moderation');
 if ($message !== '') {
     $html .= COM_showMessageText($message, '', true);
 }
@@ -164,6 +145,25 @@ echo COM_createHTMLDocument(
     )
 );
 
+function videos_moderation_nav($configuration, $active)
+{
+    $base = $configuration['site_admin_url'] . '/plugins/videos/';
+    $items = array(
+        'overview' => array('index.php', 'Vue générale'),
+        'actions' => array('actions.php', 'Actions'),
+        'stats' => array('stats.php', 'Statistiques'),
+        'moderation' => array('moderation.php', 'Modération')
+    );
+    $html = '<nav class="videos-navigation" aria-label="Administration Videos"><ul>';
+    foreach ($items as $key => $item) {
+        $html .= '<li><a href="'
+            . htmlspecialchars($base . $item[0], ENT_QUOTES, 'UTF-8') . '"'
+            . ($key === $active ? ' class="is-active" aria-current="page"' : '')
+            . '>' . htmlspecialchars($item[1], ENT_QUOTES, 'UTF-8') . '</a></li>';
+    }
+    return $html . '</ul></nav>';
+}
+
 function videos_moderation_form(
     $entity,
     $states,
@@ -179,16 +179,10 @@ function videos_moderation_form(
         . htmlspecialchars($entity, ENT_QUOTES, 'UTF-8') . '">';
     if ($entity === 'channel') {
         $html .= '<label>'
-            . htmlspecialchars(
-                $language['known_channel'],
-                ENT_QUOTES,
-                'UTF-8'
-            ) . '<select name="known_channel_id"><option value="">'
-            . htmlspecialchars(
-                $language['choose_known_channel'],
-                ENT_QUOTES,
-                'UTF-8'
-            ) . '</option>';
+            . htmlspecialchars($language['known_channel'], ENT_QUOTES, 'UTF-8')
+            . '<select name="known_channel_id"><option value="">'
+            . htmlspecialchars($language['choose_known_channel'], ENT_QUOTES, 'UTF-8')
+            . '</option>';
         foreach ($knownChannels as $channel) {
             $channelId = isset($channel['channel_id'])
                 ? $channel['channel_id'] : '';
@@ -213,24 +207,15 @@ function videos_moderation_form(
                 ENT_QUOTES,
                 'UTF-8'
             ) . '</p><details class="videos-advanced-field"><summary>'
-            . htmlspecialchars(
-                $language['manual_channel_entry'],
-                ENT_QUOTES,
-                'UTF-8'
-            ) . '</summary><label>'
-            . htmlspecialchars(
-                $language['channel_id'],
-                ENT_QUOTES,
-                'UTF-8'
-            ) . '<input type="text" name="entity_id" maxlength="64">'
+            . htmlspecialchars($language['manual_channel_entry'], ENT_QUOTES, 'UTF-8')
+            . '</summary><label>'
+            . htmlspecialchars($language['channel_id'], ENT_QUOTES, 'UTF-8')
+            . '<input type="text" name="entity_id" maxlength="64">'
             . '</label></details>';
     } else {
         $html .= '<label>'
-            . htmlspecialchars(
-                $language['video_id'],
-                ENT_QUOTES,
-                'UTF-8'
-            ) . '<input type="text" name="entity_id" required maxlength="64">'
+            . htmlspecialchars($language['video_id'], ENT_QUOTES, 'UTF-8')
+            . '<input type="text" name="entity_id" required maxlength="64">'
             . '</label>';
     }
     $html .= '<label>'
@@ -287,11 +272,8 @@ function videos_moderation_table(
         $stateKey = 'moderation_state_' . $record['state'];
         $stateLabel = isset($language[$stateKey])
             ? $language[$stateKey] : $record['state'];
-        $html .= '<tr><td>' . htmlspecialchars(
-            $label,
-            ENT_QUOTES,
-            'UTF-8'
-        ) . '<br><code>' . htmlspecialchars($id, ENT_QUOTES, 'UTF-8')
+        $html .= '<tr><td>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8')
+            . '<br><code>' . htmlspecialchars($id, ENT_QUOTES, 'UTF-8')
             . '</code></td><td>'
             . htmlspecialchars($stateLabel, ENT_QUOTES, 'UTF-8')
             . '</td><td>' . htmlspecialchars(
@@ -315,11 +297,8 @@ function videos_moderation_table(
             . htmlspecialchars($id, ENT_QUOTES, 'UTF-8')
             . '"><input type="hidden" name="state" value="neutral">'
             . '<button type="submit">'
-            . htmlspecialchars(
-                $language['moderation_remove'],
-                ENT_QUOTES,
-                'UTF-8'
-            ) . '</button></form></td></tr>';
+            . htmlspecialchars($language['moderation_remove'], ENT_QUOTES, 'UTF-8')
+            . '</button></form></td></tr>';
     }
     return $html . '</tbody></table></div></section>';
 }
