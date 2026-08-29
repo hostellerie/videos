@@ -19,13 +19,17 @@ class Videos_Moderation
             !in_array($state, array('neutral', 'blocked'), true)) {
             return false;
         }
-        return $this->setState(
+        $saved = $this->setState(
             'video',
             $videoId,
             $state,
             $reason,
             $actorHash
         );
+        if ($saved) {
+            $this->signalVideoDecision($videoId);
+        }
+        return $saved;
     }
 
     public function setChannelState($channelId, $state, $reason, $actorHash)
@@ -41,13 +45,17 @@ class Videos_Moderation
             !in_array($state, $allowed, true)) {
             return false;
         }
-        return $this->setState(
+        $saved = $this->setState(
             'channel',
             $channelId,
             $state,
             $reason,
             $actorHash
         );
+        if ($saved) {
+            $this->signalChannelDecision($channelId);
+        }
+        return $saved;
     }
 
     public function getVideoState($videoId)
@@ -138,6 +146,47 @@ class Videos_Moderation
         );
     }
 
+    private function signalVideoDecision($videoId)
+    {
+        if (!function_exists('VIDEOS_signalSaved')) {
+            return;
+        }
+        VIDEOS_signalSaved($videoId);
+        VIDEOS_signalSaved('catalogue');
+        VIDEOS_signalSaved('rankings:videos');
+    }
+
+    private function signalChannelDecision($channelId)
+    {
+        if (!function_exists('VIDEOS_signalSaved')) {
+            return;
+        }
+        VIDEOS_signalSaved('channel:' . $channelId);
+        VIDEOS_signalSaved('catalogue');
+        VIDEOS_signalSaved('rankings:channels');
+        VIDEOS_signalSaved('rankings:videos');
+
+        if (!class_exists('Videos_Ranking') ||
+            !class_exists('Videos_RatingStats') ||
+            !class_exists('Videos_VideoStats') ||
+            !class_exists('Videos_Cache')) {
+            return;
+        }
+        $cache = new Videos_Cache($this->store);
+        $ranking = new Videos_Ranking(
+            $this->store,
+            new Videos_RatingStats($this->store),
+            new Videos_VideoStats($this->store),
+            $cache
+        );
+        foreach ($ranking->getGlobal(500) as $videoId => $item) {
+            if (isset($item['channel_id']) &&
+                (string) $item['channel_id'] === $channelId) {
+                VIDEOS_signalSaved($videoId);
+            }
+        }
+    }
+
     private function setState($type, $id, $state, $reason, $actorHash)
     {
         $path = $this->path($type, $id);
@@ -145,7 +194,8 @@ class Videos_Moderation
             return false;
         }
         if ($state === 'neutral') {
-            return $this->store->delete($path);
+            $deleted = $this->store->delete($path);
+            return $deleted !== false;
         }
         $reason = trim(strip_tags((string) $reason));
         if (function_exists('MBYTE_substr')) {
