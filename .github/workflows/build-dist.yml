@@ -31,6 +31,12 @@ jobs:
           set -euo pipefail
           git pull --ff-only origin "${GITHUB_REF_NAME}"
 
+      - name: Fix public header newlines
+        shell: bash
+        run: |
+          set -euo pipefail
+          php tools/fix-public-header-newlines.php
+
       - name: Lint PHP sources
         shell: bash
         run: |
@@ -75,7 +81,7 @@ jobs:
           unzip -t "dist/${ARCHIVE}"
           unzip -l "dist/${ARCHIVE}" | head -80
 
-      - name: Commit generated archive
+      - name: Commit corrected sources and archive
         shell: bash
         run: |
           set -euo pipefail
@@ -83,12 +89,12 @@ jobs:
           ARCHIVE="videos_0.18.0_2.1.1.zip"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A dist
+          git add -A public_html dist
 
           if git diff --cached --quiet; then
-            echo "Archive is already up to date."
+            echo "Sources and archive are already up to date."
             exit 0
           fi
 
-          git commit -m "Build ${ARCHIVE}"
+          git commit -m "Fix public header newlines and build ${ARCHIVE}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
