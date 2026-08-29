@@ -32,7 +32,39 @@ if ($store && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Le jeton de sécurité a expiré. Veuillez recommencer.';
     } else {
         $action = isset($_POST['videos_action']) ? COM_applyFilter($_POST['videos_action']) : '';
-        if ($action === 'add_video') {
+        if ($action === 'save_key') {
+            $key = isset($_POST['youtube_api_key']) ? trim((string) $_POST['youtube_api_key']) : '';
+            $message = $bootstrap->setYouTubeApiKey($key)
+                ? 'La clé YouTube Data API a été enregistrée.'
+                : 'La clé API est invalide.';
+        } elseif ($action === 'seed_discovery' && SEC_hasRights('videos.maintenance')) {
+            $query = isset($_POST['seed_query']) ? trim(strip_tags((string) $_POST['seed_query'])) : '';
+            if ($query === '' || strlen($query) > 250) {
+                $message = 'La requête d’amorçage est invalide.';
+            } else {
+                $result = videos_actions_seed_discovery($bootstrap, $query, $_VIDEOS_CONF);
+                $message = is_array($result) && !empty($result['success'])
+                    ? (int) $result['added'] . ' vidéo(s) ajoutée(s) au réservoir.'
+                    : 'L’amorçage du réservoir a échoué.';
+            }
+        } elseif ($action === 'clear_cache' && SEC_hasRights('videos.maintenance')) {
+            $scope = isset($_POST['cache_scope']) ? COM_applyFilter($_POST['cache_scope']) : '';
+            $result = (new Videos_CacheMaintenance($store))->clear($scope);
+            $message = !empty($result['success'])
+                ? (int) $result['deleted'] . ' entrée(s) de cache supprimée(s).'
+                : 'Nettoyage partiel : ' . (int) $result['deleted'] . ' supprimée(s), '
+                    . (int) $result['failed'] . ' échec(s).';
+        } elseif ($action === 'rebuild_ranking' && SEC_hasRights('videos.maintenance')) {
+            $count = $ranking->rebuild();
+            $message = $count === false
+                ? 'La reconstruction des classements a échoué.'
+                : 'Classements reconstruits : ' . (int) $count . ' vidéo(s) classée(s).';
+        } elseif ($action === 'pool_rebuild' && SEC_hasRights('videos.maintenance')) {
+            $result = $pool->synchronize($ranking->getGlobal(500), $_VIDEOS_CONF, true);
+            $message = $result === false
+                ? 'La reconstruction du catalogue permanent a échoué.'
+                : 'Le catalogue permanent a été reconstruit.';
+        } elseif ($action === 'add_video') {
             $input = isset($_POST['video_input']) ? trim((string) $_POST['video_input']) : '';
             $videoId = videos_admin_extract_video_id($input);
             if ($videoId === '') {
@@ -86,11 +118,6 @@ if ($store && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     'Décision éditoriale depuis la page Actions Videos',
                     $actorHash
                 );
-                if ($saved && function_exists('VIDEOS_signalSaved')) {
-                    VIDEOS_signalSaved('rankings:channels');
-                    VIDEOS_signalSaved('catalogue');
-                    VIDEOS_signalSaved('channel:' . $channelId);
-                }
                 $message = $saved ? 'Décision sur la chaîne enregistrée.' : 'Impossible de modifier la chaîne.';
             }
         } elseif ($action === 'signal_public_pages') {
@@ -122,7 +149,8 @@ $html = '<div class="videos-admin"><h1>Videos — Actions</h1>'
 if ($message !== '') {
     $html .= COM_showMessageText($message, '', true);
 }
-$html .= '<section class="videos-admin-section"><h2>Ajouter une vidéo</h2>'
+
+$html .= '<section class="videos-admin-section"><h2>Curation vidéo</h2>'
     . '<p>Ajoutez directement une vidéo par son ID ou son URL YouTube. Elle est récupérée, mise en cache, ajoutée au catalogue permanent puis signalée via les événements Geeklog.</p>'
     . '<form class="videos-admin-form" method="post"><input type="hidden" name="videos_action" value="add_video">'
     . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
@@ -154,14 +182,19 @@ if (empty($records['items'])) {
     }
     $html .= '</tbody></table></div>';
 }
+if (SEC_hasRights('videos.maintenance')) {
+    $html .= '<form class="videos-admin-form" method="post"><input type="hidden" name="videos_action" value="pool_rebuild">'
+        . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
+        . '<button type="submit">Reconstruire le catalogue permanent</button></form>';
+}
 $html .= '</section>';
 
 if (SEC_hasRights('videos.moderate')) {
-    $html .= '<section class="videos-admin-section"><h2>Chaînes prioritaires</h2>';
+    $html .= '<section class="videos-admin-section"><h2>Décisions sur les chaînes</h2>';
     if (count($priorityChannels) === 0) {
         $html .= '<p>Aucune chaîne prioritaire.</p>';
     } else {
-        $html .= '<ul>';
+        $html .= '<p><strong>Chaînes prioritaires</strong></p><ul>';
         foreach ($priorityChannels as $channelId) {
             $channel = $cache->getChannel($channelId, true);
             $title = is_array($channel) && !empty($channel['snippet']['title'])
@@ -181,6 +214,32 @@ if (SEC_hasRights('videos.moderate')) {
         . '<button type="submit">Appliquer</button></form></section>';
 }
 
+$html .= '<section class="videos-admin-section"><h2>YouTube Data API</h2>'
+    . '<form class="videos-admin-form" method="post"><input type="hidden" name="videos_action" value="save_key">'
+    . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
+    . '<label>Nouvelle clé API <input type="password" name="youtube_api_key" maxlength="200" autocomplete="new-password"></label> '
+    . '<button type="submit">Enregistrer la clé</button></form>';
+if (SEC_hasRights('videos.maintenance')) {
+    $html .= '<form class="videos-admin-form" method="post"><input type="hidden" name="videos_action" value="seed_discovery">'
+        . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
+        . '<label>Requête d’amorçage <input type="text" name="seed_query" maxlength="250" size="50" required></label> '
+        . '<button type="submit">Amorcer le réservoir</button></form>';
+}
+$html .= '</section>';
+
+if (SEC_hasRights('videos.maintenance')) {
+    $html .= '<section class="videos-admin-section"><h2>Maintenance</h2>'
+        . '<form class="videos-admin-form" method="post"><input type="hidden" name="videos_action" value="rebuild_ranking">'
+        . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
+        . '<button type="submit">Reconstruire les classements</button></form>'
+        . '<form class="videos-admin-form" method="post"><input type="hidden" name="videos_action" value="clear_cache">'
+        . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
+        . '<label>Cache <select name="cache_scope"><option value="search">Recherches</option><option value="videos">Vidéos</option>'
+        . '<option value="channels">Chaînes</option><option value="availability">Disponibilité</option><option value="all">Tous</option></select></label> '
+        . '<button type="submit">Vider le cache</button></form>'
+        . '<p><a href="' . htmlspecialchars($_CONF['site_admin_url'] . '/plugins/videos/repair.php', ENT_QUOTES, 'UTF-8') . '">Outils de réparation</a></p></section>';
+}
+
 $html .= '<section class="videos-admin-section"><h2>Indexation des pages existantes</h2>'
     . '<p>Cette action réémet les événements Geeklog pour le catalogue, les classements, les vidéos actives du réservoir, les vidéos du classement global, le catalogue permanent et les pages de chaînes éligibles. IndexNow peut ensuite résoudre et dédupliquer les URLs.</p>'
     . '<form method="post"><input type="hidden" name="videos_action" value="signal_public_pages">'
@@ -189,6 +248,55 @@ $html .= '<section class="videos-admin-section"><h2>Indexation des pages existan
 
 echo COM_createHTMLDocument($html, array('pagetitle' => 'Videos — Actions', 'headercode' => VIDEOS_adminHeaderCode()));
 
+function videos_actions_seed_discovery($bootstrap, $query, $configuration)
+{
+    $store = $bootstrap->getStore();
+    $cache = new Videos_Cache($store);
+    $service = new Videos_YouTubeService(
+        new Videos_YouTubeClient(
+            $bootstrap->getYouTubeApiKey(),
+            isset($configuration['youtube_timeout']) ? $configuration['youtube_timeout'] : 8
+        ),
+        $cache,
+        new Videos_Quota($store),
+        new Videos_Logger($store)
+    );
+    return (new Videos_DiscoveryReservoir($store, $cache))->refresh(
+        $query,
+        videos_actions_search_parameters($configuration),
+        $configuration,
+        $service,
+        true
+    );
+}
+
+function videos_actions_search_parameters($configuration)
+{
+    return array(
+        'max_results' => isset($configuration['youtube_max_results']) ? $configuration['youtube_max_results'] : 20,
+        'order' => 'relevance',
+        'safe_search' => isset($configuration['youtube_safe_search']) ? $configuration['youtube_safe_search'] : 'moderate',
+        'language' => isset($configuration['language']) ? $configuration['language'] : 'fr',
+        'region' => isset($configuration['region']) ? $configuration['region'] : 'FR',
+        'published_after' => '',
+        'category_id' => '',
+        'channel_id' => '',
+        'daily_search_limit' => isset($configuration['youtube_daily_search_limit']) ? $configuration['youtube_daily_search_limit'] : 20,
+        'cache_ttl' => isset($configuration['search_cache_ttl']) ? $configuration['search_cache_ttl'] : 86400,
+        'video_cache_ttl' => isset($configuration['video_cache_ttl']) ? $configuration['video_cache_ttl'] : 86400,
+        'channel_cache_ttl' => isset($configuration['channel_cache_ttl']) ? $configuration['channel_cache_ttl'] : 604800,
+        'availability_cache_ttl' => isset($configuration['availability_cache_ttl']) ? $configuration['availability_cache_ttl'] : 86400,
+        'blocked_videos' => isset($configuration['blocked_videos']) ? $configuration['blocked_videos'] : '',
+        'blocked_channels' => isset($configuration['blocked_channels']) ? $configuration['blocked_channels'] : '',
+        'allowed_channels' => isset($configuration['allowed_channels']) ? $configuration['allowed_channels'] : '',
+        'minimum_duration' => 0,
+        'maximum_duration' => 0,
+        'exclude_short_videos' => !empty($configuration['exclude_short_videos']) ? 1 : 0,
+        'short_filter_mode' => isset($configuration['short_filter_mode']) ? $configuration['short_filter_mode'] : 'probable',
+        'short_max_duration' => isset($configuration['short_max_duration']) ? $configuration['short_max_duration'] : 180
+    );
+}
+
 function videos_admin_public_signal_ids($store, $cache, $pool, $moderation, $ranking, $configuration)
 {
     $ids = array(
@@ -196,7 +304,6 @@ function videos_admin_public_signal_ids($store, $cache, $pool, $moderation, $ran
         'rankings:videos' => true,
         'rankings:channels' => true
     );
-
     $reservoir = new Videos_DiscoveryReservoir($store, $cache);
     $reservoirVideos = $reservoir->videos($configuration);
     if (is_array($reservoirVideos)) {
@@ -206,15 +313,12 @@ function videos_admin_public_signal_ids($store, $cache, $pool, $moderation, $ran
             }
         }
     }
-
-    $global = $ranking->getGlobal(500);
-    foreach ($global as $videoId => $item) {
+    foreach ($ranking->getGlobal(500) as $videoId => $item) {
         $video = $cache->getVideo($videoId, true);
         if (videos_admin_video_is_public($videoId, $video, $cache, $moderation, $configuration)) {
             $ids[$videoId] = true;
         }
     }
-
     $records = $pool->records();
     foreach (isset($records['items']) ? $records['items'] : array() as $videoId => $item) {
         $video = $cache->getVideo($videoId, true);
@@ -222,11 +326,9 @@ function videos_admin_public_signal_ids($store, $cache, $pool, $moderation, $ran
             $ids[$videoId] = true;
         }
     }
-
     $channelRanking = (new Videos_ChannelRanking($store, $cache))->getGlobal(250);
     foreach ($channelRanking as $channelId => $item) {
-        if (!Videos_Validator::youtubeChannelId($channelId) ||
-            $moderation->isChannelExcluded($channelId)) {
+        if (!Videos_Validator::youtubeChannelId($channelId) || $moderation->isChannelExcluded($channelId)) {
             continue;
         }
         if (isset($item['video_count']) && (int) $item['video_count'] >= 2) {
@@ -234,12 +336,10 @@ function videos_admin_public_signal_ids($store, $cache, $pool, $moderation, $ran
         }
     }
     foreach ($moderation->getPriorityChannelIds(500) as $channelId) {
-        if (Videos_Validator::youtubeChannelId($channelId) &&
-            !$moderation->isChannelExcluded($channelId)) {
+        if (Videos_Validator::youtubeChannelId($channelId) && !$moderation->isChannelExcluded($channelId)) {
             $ids['channel:' . $channelId] = true;
         }
     }
-
     return array_keys($ids);
 }
 
@@ -249,13 +349,9 @@ function videos_admin_video_is_public($videoId, $video, $cache, $moderation, $co
         $cache->isVideoUnavailable($videoId) || $moderation->isVideoBlocked($videoId)) {
         return false;
     }
-    $channelId = isset($video['snippet']['channelId'])
-        ? (string) $video['snippet']['channelId'] : '';
-    if ($moderation->isChannelExcluded($channelId) ||
-        Videos_VideoPolicy::excludesShortVideo($video, $configuration)) {
-        return false;
-    }
-    return true;
+    $channelId = isset($video['snippet']['channelId']) ? (string) $video['snippet']['channelId'] : '';
+    return !$moderation->isChannelExcluded($channelId)
+        && !Videos_VideoPolicy::excludesShortVideo($video, $configuration);
 }
 
 function videos_admin_extract_video_id($input)
@@ -308,8 +404,7 @@ function videos_admin_fetch_single_video($bootstrap, $cache, $videoId, $configur
     $video = $videos[$videoId];
     $status = isset($video['status']) ? $video['status'] : array();
     if (empty($status['embeddable']) || !isset($status['privacyStatus']) ||
-        $status['privacyStatus'] !== 'public' ||
-        Videos_VideoPolicy::excludesShortVideo($video, $configuration)) {
+        $status['privacyStatus'] !== 'public' || Videos_VideoPolicy::excludesShortVideo($video, $configuration)) {
         return false;
     }
     if (isset($video['contentDetails']['duration'])) {
@@ -323,8 +418,7 @@ function videos_admin_fetch_single_video($bootstrap, $cache, $videoId, $configur
         $videoId,
         true,
         'available',
-        isset($configuration['availability_cache_ttl'])
-            ? (int) $configuration['availability_cache_ttl'] : 86400
+        isset($configuration['availability_cache_ttl']) ? (int) $configuration['availability_cache_ttl'] : 86400
     );
     $channelId = isset($video['snippet']['channelId']) ? $video['snippet']['channelId'] : '';
     if (Videos_Validator::youtubeChannelId($channelId) && $quota->reserve('channels', 500)) {
@@ -333,8 +427,7 @@ function videos_admin_fetch_single_video($bootstrap, $cache, $videoId, $configur
             $cache->putChannel(
                 $channelId,
                 $channels[$channelId],
-                isset($configuration['channel_cache_ttl'])
-                    ? (int) $configuration['channel_cache_ttl'] : 604800,
+                isset($configuration['channel_cache_ttl']) ? (int) $configuration['channel_cache_ttl'] : 604800,
                 5184000
             );
         }
