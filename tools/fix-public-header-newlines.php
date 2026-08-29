@@ -9,11 +9,9 @@ foreach ($files as $path) {
     if ($content === false) {
         throw new RuntimeException('Cannot read ' . $path);
     }
-    // In single-quoted PHP strings, \\n is literal text. Compose headercode
-    // with an actual newline instead so Geeklog never renders "\\n".
-    $content = str_replace(". '>\\\\n'", ". '>' . \"\\n\"", $content);
-    $content = str_replace(". '\\">\\\\n'", ". '\\">' . \"\\n\"", $content);
-    $content = str_replace(". '>\\n'", ". '>' . \"\\n\"", $content);
+    // Replace literal backslash-n endings in single-quoted header fragments
+    // with concatenated real newlines.
+    $content = str_replace("\\n'", "' . \"\\n\"", $content);
     if (file_put_contents($path, $content) === false) {
         throw new RuntimeException('Cannot write ' . $path);
     }
