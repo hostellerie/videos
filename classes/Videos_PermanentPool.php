@@ -20,9 +20,16 @@ class Videos_PermanentPool
     public function status()
     {
         $data = $this->readData();
+        $pinned = 0;
+        foreach ($data['items'] as $item) {
+            if (!empty($item['pinned'])) {
+                $pinned++;
+            }
+        }
         return array(
             'rebuilt_at' => $data['rebuilt_at'],
             'item_count' => count($data['items']),
+            'pinned_count' => $pinned,
             'excluded_count' => count($data['excluded'])
         );
     }
@@ -30,6 +37,18 @@ class Videos_PermanentPool
     public function records()
     {
         return $this->readData();
+    }
+
+    public function contains($videoId)
+    {
+        $data = $this->readData();
+        return isset($data['items'][$videoId]);
+    }
+
+    public function isPinned($videoId)
+    {
+        $data = $this->readData();
+        return isset($data['items'][$videoId]) && !empty($data['items'][$videoId]['pinned']);
     }
 
     public function markDirty()
@@ -48,16 +67,18 @@ class Videos_PermanentPool
 
     public function setManualState($videoId, $state, $rankingItem)
     {
-        if (!Videos_Validator::youtubeVideoId($videoId) ||
-            !in_array($state, array('pinned', 'removed', 'excluded', 'allowed'), true)) {
+        $states = array('added', 'pinned', 'unpinned', 'removed', 'excluded', 'allowed');
+        if (!Videos_Validator::youtubeVideoId($videoId) || !in_array($state, $states, true)) {
             return false;
         }
-        if ($state === 'pinned' && !is_array($this->cache->getVideo($videoId, true))) {
+        if (in_array($state, array('added', 'pinned', 'unpinned'), true) &&
+            !is_array($this->cache->getVideo($videoId, true))) {
             return false;
         }
 
         $before = $this->readData();
         $wasPublished = isset($before['items'][$videoId]);
+        $wasPinned = $wasPublished && !empty($before['items'][$videoId]['pinned']);
         $result = $this->store->update(
             'rankings/permanent_pool.json',
             'videos.permanent_pool',
@@ -71,13 +92,22 @@ class Videos_PermanentPool
                 if (!isset($data['excluded']) || !is_array($data['excluded'])) {
                     $data['excluded'] = array();
                 }
-                if ($state === 'pinned') {
+                if ($state === 'added' || $state === 'pinned' || $state === 'unpinned') {
                     unset($data['excluded'][$videoId]);
+                    $existing = isset($data['items'][$videoId]) && is_array($data['items'][$videoId])
+                        ? $data['items'][$videoId] : array();
+                    $admittedAt = !empty($existing['admitted_at'])
+                        ? $existing['admitted_at'] : gmdate('Y-m-d\TH:i:s\Z');
+                    $pinned = $state === 'pinned';
+                    if ($state === 'added' && !empty($existing['pinned'])) {
+                        $pinned = true;
+                    }
                     $data['items'][$videoId] = $this->poolItem(
                         $videoId,
                         is_array($rankingItem) ? $rankingItem : array(),
                         'manual',
-                        gmdate('Y-m-d\TH:i:s\Z')
+                        $admittedAt,
+                        $pinned
                     );
                 } elseif ($state === 'excluded') {
                     unset($data['items'][$videoId]);
@@ -99,8 +129,16 @@ class Videos_PermanentPool
             return false;
         }
 
-        if ($state === 'pinned' && !$wasPublished && function_exists('PLG_itemSaved')) {
-            PLG_itemSaved($videoId, 'videos');
+        $isEditorialSave = ($state === 'added' && !$wasPublished)
+            || ($state === 'pinned' && !$wasPinned)
+            || ($state === 'unpinned' && $wasPinned);
+        if ($isEditorialSave) {
+            if (function_exists('VIDEOS_signalSaved')) {
+                VIDEOS_signalSaved($videoId);
+                VIDEOS_signalSaved('catalogue');
+            } elseif (function_exists('PLG_itemSaved')) {
+                PLG_itemSaved($videoId, 'videos');
+            }
         }
         return true;
     }
@@ -130,14 +168,16 @@ class Videos_PermanentPool
             if (!Videos_Validator::youtubeVideoId($videoId) || !isset($item['source'])) {
                 continue;
             }
+            if (!isset($item['pinned'])) {
+                $item['pinned'] = false;
+            }
             if ($item['source'] === 'manual' || ($keepBelow && $item['source'] === 'automatic')) {
                 $items[$videoId] = $item;
             }
         }
         if ($automatic && is_array($rankingItems)) {
             foreach ($rankingItems as $videoId => $rankingItem) {
-                if (count($items) >= $maximum ||
-                    !Videos_Validator::youtubeVideoId($videoId) ||
+                if (count($items) >= $maximum || !Videos_Validator::youtubeVideoId($videoId) ||
                     isset($data['excluded'][$videoId])) {
                     continue;
                 }
@@ -148,7 +188,7 @@ class Videos_PermanentPool
                 }
                 $admittedAt = isset($items[$videoId]['admitted_at'])
                     ? $items[$videoId]['admitted_at'] : gmdate('Y-m-d\TH:i:s\Z');
-                $items[$videoId] = $this->poolItem($videoId, $rankingItem, 'automatic', $admittedAt);
+                $items[$videoId] = $this->poolItem($videoId, $rankingItem, 'automatic', $admittedAt, false);
             }
         }
         uasort($items, array($this, 'comparePoolItems'));
@@ -157,19 +197,18 @@ class Videos_PermanentPool
         }
         $document = $this->store->createDocument(
             'videos.permanent_pool',
-            array(
-                'rebuilt_at' => gmdate('Y-m-d\TH:i:s\Z'),
-                'items' => $items,
-                'excluded' => $data['excluded']
-            )
+            array('rebuilt_at' => gmdate('Y-m-d\TH:i:s\Z'), 'items' => $items, 'excluded' => $data['excluded'])
         );
         if (!$this->store->write('rankings/permanent_pool.json', 'videos.permanent_pool', $document)) {
             return false;
         }
 
-        if (function_exists('PLG_itemSaved')) {
-            foreach ($items as $videoId => $item) {
-                if (!isset($previousItems[$videoId])) {
+        foreach ($items as $videoId => $item) {
+            if (!isset($previousItems[$videoId])) {
+                if (function_exists('VIDEOS_signalSaved')) {
+                    VIDEOS_signalSaved($videoId);
+                    VIDEOS_signalSaved('catalogue');
+                } elseif (function_exists('PLG_itemSaved')) {
                     PLG_itemSaved($videoId, 'videos');
                 }
             }
@@ -195,12 +234,9 @@ class Videos_PermanentPool
                 continue;
             }
             $channelId = isset($video['snippet']['channelId']) ? (string) $video['snippet']['channelId'] : '';
-            if ($this->cache->isVideoUnavailable($videoId) ||
-                $this->moderation->isVideoBlocked($videoId) ||
-                $this->moderation->isChannelExcluded($channelId) ||
-                isset($blockedVideos[$videoId]) ||
-                isset($blockedChannels[$channelId]) ||
-                Videos_VideoPolicy::excludesShortVideo($video, $configuration)) {
+            if ($this->cache->isVideoUnavailable($videoId) || $this->moderation->isVideoBlocked($videoId) ||
+                $this->moderation->isChannelExcluded($channelId) || isset($blockedVideos[$videoId]) ||
+                isset($blockedChannels[$channelId]) || Videos_VideoPolicy::excludesShortVideo($video, $configuration)) {
                 continue;
             }
             $videos[$videoId] = $video;
@@ -214,13 +250,11 @@ class Videos_PermanentPool
         $discoveryMetadata = isset($discovery['metadata']) && is_array($discovery['metadata']) ? $discovery['metadata'] : array();
         $permanentVideos = isset($permanent['videos']) && is_array($permanent['videos']) ? $permanent['videos'] : array();
         $permanentMetadata = isset($permanent['metadata']) && is_array($permanent['metadata']) ? $permanent['metadata'] : array();
-        $target = isset($configuration['catalogue_max_videos'])
-            ? max(50, min(500, (int) $configuration['catalogue_max_videos'])) : 300;
-        $percentage = isset($configuration['permanent_pool_percentage'])
-            ? max(0, min(50, (int) $configuration['permanent_pool_percentage'])) : 25;
+        $records = $this->readData();
+        $target = isset($configuration['catalogue_max_videos']) ? max(50, min(500, (int) $configuration['catalogue_max_videos'])) : 300;
+        $percentage = isset($configuration['permanent_pool_percentage']) ? max(0, min(50, (int) $configuration['permanent_pool_percentage'])) : 25;
         $poolQuota = (int) floor($target * $percentage / 100);
-        $maximumPerChannel = isset($configuration['max_same_channel'])
-            ? max(1, (int) $configuration['max_same_channel']) : 2;
+        $maximumPerChannel = isset($configuration['max_same_channel']) ? max(1, (int) $configuration['max_same_channel']) : 2;
         $result = array();
         $metadata = array();
         $lastChannel = null;
@@ -228,23 +262,21 @@ class Videos_PermanentPool
         $poolUsed = 0;
         $interval = $poolQuota > 0 ? max(2, (int) round($target / $poolQuota)) : $target + 1;
 
-        while (count($result) < $target &&
-            (count($discoveryVideos) > 0 || ($poolUsed < $poolQuota && count($permanentVideos) > 0))) {
+        while (count($result) < $target && (count($discoveryVideos) > 0 || ($poolUsed < $poolQuota && count($permanentVideos) > 0))) {
             $usePool = $poolUsed < $poolQuota && count($permanentVideos) > 0 &&
                 (count($result) % $interval === 0 || count($discoveryVideos) === 0);
             if ($usePool) {
                 $videoId = key($permanentVideos);
                 $video = current($permanentVideos);
-                unset($permanentVideos[$videoId]);
-                unset($discoveryVideos[$videoId]);
+                unset($permanentVideos[$videoId], $discoveryVideos[$videoId]);
                 $itemMetadata = isset($permanentMetadata[$videoId]) ? $permanentMetadata[$videoId] : array();
                 $itemMetadata['permanent_pool'] = true;
+                $itemMetadata['pinned'] = isset($records['items'][$videoId]) && !empty($records['items'][$videoId]['pinned']);
                 $poolUsed++;
             } else {
                 $videoId = key($discoveryVideos);
                 $video = current($discoveryVideos);
-                unset($discoveryVideos[$videoId]);
-                unset($permanentVideos[$videoId]);
+                unset($discoveryVideos[$videoId], $permanentVideos[$videoId]);
                 $itemMetadata = isset($discoveryMetadata[$videoId]) ? $discoveryMetadata[$videoId] : array();
             }
             $channelId = isset($video['snippet']['channelId']) ? (string) $video['snippet']['channelId'] : '';
@@ -265,6 +297,11 @@ class Videos_PermanentPool
 
     public function comparePoolItems($left, $right)
     {
+        $leftPinned = !empty($left['pinned']);
+        $rightPinned = !empty($right['pinned']);
+        if ($leftPinned !== $rightPinned) {
+            return $leftPinned ? -1 : 1;
+        }
         $leftManual = isset($left['source']) && $left['source'] === 'manual';
         $rightManual = isset($right['source']) && $right['source'] === 'manual';
         if ($leftManual !== $rightManual) {
@@ -278,11 +315,12 @@ class Videos_PermanentPool
         return $leftScore > $rightScore ? -1 : 1;
     }
 
-    private function poolItem($videoId, $rankingItem, $source, $admittedAt)
+    private function poolItem($videoId, $rankingItem, $source, $admittedAt, $pinned)
     {
         return array(
             'video_id' => $videoId,
             'source' => $source,
+            'pinned' => (bool) $pinned,
             'admitted_at' => $admittedAt,
             'score' => isset($rankingItem['score']) ? round((float) $rankingItem['score'], 4) : 0,
             'rating_count' => isset($rankingItem['rating_count']) ? max(0, (int) $rankingItem['rating_count']) : 0,
@@ -295,6 +333,11 @@ class Videos_PermanentPool
         $document = $this->store->read('rankings/permanent_pool.json', 'videos.permanent_pool', $this->emptyData());
         $data = isset($document['data']) && is_array($document['data']) ? $document['data'] : $this->emptyData();
         $data['items'] = isset($data['items']) && is_array($data['items']) ? $data['items'] : array();
+        foreach ($data['items'] as $videoId => $item) {
+            if (!isset($data['items'][$videoId]['pinned'])) {
+                $data['items'][$videoId]['pinned'] = false;
+            }
+        }
         $data['excluded'] = isset($data['excluded']) && is_array($data['excluded']) ? $data['excluded'] : array();
         $data['rebuilt_at'] = isset($data['rebuilt_at']) ? $data['rebuilt_at'] : null;
         return $data;
@@ -307,7 +350,7 @@ class Videos_PermanentPool
 
     private function listSet($value)
     {
-        $items = preg_split('/[\s,;]+/', (string) $value, -1, PREG_SPLIT_NO_EMPTY);
+        $items = preg_split('/[\\s,;]+/', (string) $value, -1, PREG_SPLIT_NO_EMPTY);
         $set = array();
         foreach ($items as $item) {
             $set[trim($item)] = true;
