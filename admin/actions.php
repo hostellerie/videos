@@ -15,7 +15,6 @@ $message = '';
 if (!$bootstrap->isReady()) {
     $message = 'Le stockage du plugin Videos est indisponible.';
 }
-
 $store = $bootstrap->isReady() ? $bootstrap->getStore() : null;
 $cache = $store ? new Videos_Cache($store) : null;
 $pool = $store ? new Videos_PermanentPool($store, $cache) : null;
@@ -121,20 +120,26 @@ if ($store && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message = $saved ? 'Décision sur la chaîne enregistrée.' : 'Impossible de modifier la chaîne.';
             }
         } elseif ($action === 'signal_public_pages') {
-            if (function_exists('VIDEOS_signalSaved')) {
-                $signalIds = videos_admin_public_signal_ids(
-                    $store,
-                    $cache,
-                    $pool,
-                    $moderation,
-                    $ranking,
-                    $_VIDEOS_CONF
+            $urls = videos_admin_public_urls(
+                $store,
+                $cache,
+                $pool,
+                $moderation,
+                $ranking,
+                $_VIDEOS_CONF
+            );
+            if (count($urls) === 0) {
+                $message = 'Aucune URL publique Videos à signaler.';
+            } elseif (function_exists('send_to_indexnow')) {
+                $result = send_to_indexnow(
+                    $urls,
+                    array('item_type' => 'videos', 'event' => 'manual-sync')
                 );
-                foreach ($signalIds as $signalId) {
-                    VIDEOS_signalSaved($signalId);
-                }
-                $message = count($signalIds)
-                    . ' ressource(s) publique(s) ont été signalée(s) aux consommateurs Geeklog.';
+                $message = $result === false
+                    ? 'Le batch IndexNow n’a pas pu être envoyé.'
+                    : count($urls) . ' URL(s) Videos envoyée(s) à IndexNow en un seul batch.';
+            } else {
+                $message = 'Le plugin IndexNow n’est pas disponible. Aucune fausse création de contenu n’a été émise.';
             }
         }
     }
@@ -149,7 +154,6 @@ $html = '<div class="videos-admin"><h1>Videos — Actions</h1>'
 if ($message !== '') {
     $html .= COM_showMessageText($message, '', true);
 }
-
 $html .= '<section class="videos-admin-section"><h2>Curation vidéo</h2>'
     . '<p>Ajoutez directement une vidéo par son ID ou son URL YouTube. Elle est récupérée, mise en cache, ajoutée au catalogue permanent puis signalée via les événements Geeklog.</p>'
     . '<form class="videos-admin-form" method="post"><input type="hidden" name="videos_action" value="add_video">'
@@ -172,11 +176,9 @@ if (empty($records['items'])) {
             . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</a><br><code>'
             . htmlspecialchars($videoId, ENT_QUOTES, 'UTF-8') . '</code></td><td>'
             . ($isPinned ? 'Épinglée' : 'Permanente') . '</td><td>';
-        if ($isPinned) {
-            $html .= videos_admin_action_form('pool_unpin', $videoId, 'Désépingler', $token);
-        } else {
-            $html .= videos_admin_action_form('pool_pin', $videoId, 'Épingler', $token);
-        }
+        $html .= $isPinned
+            ? videos_admin_action_form('pool_unpin', $videoId, 'Désépingler', $token)
+            : videos_admin_action_form('pool_pin', $videoId, 'Épingler', $token);
         $html .= videos_admin_action_form('pool_remove', $videoId, 'Retirer du permanent', $token)
             . '</td></tr>';
     }
@@ -241,10 +243,10 @@ if (SEC_hasRights('videos.maintenance')) {
 }
 
 $html .= '<section class="videos-admin-section"><h2>Indexation des pages existantes</h2>'
-    . '<p>Cette action réémet les événements Geeklog pour le catalogue, les classements, les vidéos actives du réservoir, les vidéos du classement global, le catalogue permanent et les pages de chaînes éligibles. IndexNow peut ensuite résoudre et dédupliquer les URLs.</p>'
+    . '<p>Le rattrapage inventorie les pages publiques puis utilise le mode batch d’IndexNow. Il ne génère pas de faux événements de création pour Hello ou les autres plugins.</p>'
     . '<form method="post"><input type="hidden" name="videos_action" value="signal_public_pages">'
     . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
-    . '<button type="submit">Signaler les pages existantes</button></form></section></div>';
+    . '<button type="submit">Envoyer les pages existantes à IndexNow</button></form></section></div>';
 
 echo COM_createHTMLDocument($html, array('pagetitle' => 'Videos — Actions', 'headercode' => VIDEOS_adminHeaderCode()));
 
@@ -297,15 +299,14 @@ function videos_actions_search_parameters($configuration)
     );
 }
 
-function videos_admin_public_signal_ids($store, $cache, $pool, $moderation, $ranking, $configuration)
+function videos_admin_public_urls($store, $cache, $pool, $moderation, $ranking, $configuration)
 {
     $ids = array(
         'catalogue' => true,
         'rankings:videos' => true,
         'rankings:channels' => true
     );
-    $reservoir = new Videos_DiscoveryReservoir($store, $cache);
-    $reservoirVideos = $reservoir->videos($configuration);
+    $reservoirVideos = (new Videos_DiscoveryReservoir($store, $cache))->videos($configuration);
     if (is_array($reservoirVideos)) {
         foreach ($reservoirVideos as $videoId => $video) {
             if (videos_admin_video_is_public($videoId, $video, $cache, $moderation, $configuration)) {
@@ -326,12 +327,9 @@ function videos_admin_public_signal_ids($store, $cache, $pool, $moderation, $ran
             $ids[$videoId] = true;
         }
     }
-    $channelRanking = (new Videos_ChannelRanking($store, $cache))->getGlobal(250);
-    foreach ($channelRanking as $channelId => $item) {
-        if (!Videos_Validator::youtubeChannelId($channelId) || $moderation->isChannelExcluded($channelId)) {
-            continue;
-        }
-        if (isset($item['video_count']) && (int) $item['video_count'] >= 2) {
+    foreach ((new Videos_ChannelRanking($store, $cache))->getGlobal(250) as $channelId => $item) {
+        if (Videos_Validator::youtubeChannelId($channelId) && !$moderation->isChannelExcluded($channelId) &&
+            isset($item['video_count']) && (int) $item['video_count'] >= 2) {
             $ids['channel:' . $channelId] = true;
         }
     }
@@ -340,7 +338,14 @@ function videos_admin_public_signal_ids($store, $cache, $pool, $moderation, $ran
             $ids['channel:' . $channelId] = true;
         }
     }
-    return array_keys($ids);
+    $urls = array();
+    foreach (array_keys($ids) as $id) {
+        $url = plugin_idtourl_videos('', $id);
+        if ($url !== '') {
+            $urls[$url] = true;
+        }
+    }
+    return array_keys($urls);
 }
 
 function videos_admin_video_is_public($videoId, $video, $cache, $moderation, $configuration)
