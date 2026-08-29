@@ -72,8 +72,6 @@ function plugin_dopluginsearch_videos(
         return $criteria;
     }
 
-    // Videos content has no Geeklog author or topic owner. When a specific
-    // author is requested, it cannot be a Videos result.
     if (!empty($author)) {
         $criteria->setResults(array());
         $criteria->setTotal(0);
@@ -110,8 +108,11 @@ function plugin_statssummary_videos()
 
 /**
  * Detailed Videos section on Geeklog's stats.php page.
+ *
+ * The optional argument is retained for the Geeklog 2.1.1 Plugin API, which
+ * calls plugin_showstats_PLUGIN(2) for the detailed section.
  */
-function plugin_showstats_videos()
+function plugin_showstats_videos($showSiteStats = 2)
 {
     global $_CONF;
 
