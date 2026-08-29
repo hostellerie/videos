@@ -31,11 +31,11 @@ jobs:
           set -euo pipefail
           git pull --ff-only origin "${GITHUB_REF_NAME}"
 
-      - name: Apply watch curation and moderation cleanup
+      - name: Apply independent watch curation token
         shell: bash
         run: |
           set -euo pipefail
-          php tools/fix-watch-curation-and-moderation.php
+          php tools/fix-watch-curation-token.php
 
       - name: Lint PHP sources
         shell: bash
@@ -81,7 +81,7 @@ jobs:
           unzip -t "dist/${ARCHIVE}"
           unzip -l "dist/${ARCHIVE}" | head -80
 
-      - name: Commit corrected sources and archive
+      - name: Commit corrected source and archive
         shell: bash
         run: |
           set -euo pipefail
@@ -89,12 +89,12 @@ jobs:
           ARCHIVE="videos_0.18.0_2.1.1.zip"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A public_html admin language dist
+          git add -A public_html dist
 
           if git diff --cached --quiet; then
-            echo "Sources and archive are already up to date."
+            echo "Source and archive are already up to date."
             exit 0
           fi
 
-          git commit -m "Fix watch curation and consolidate moderation"
+          git commit -m "Separate watch curation and playback tokens"
           git push origin "HEAD:${GITHUB_REF_NAME}"
