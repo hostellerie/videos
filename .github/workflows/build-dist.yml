@@ -76,4 +76,5 @@ jobs:
           fi
 
           git commit -m "Build ${ARCHIVE}"
-          git push
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
