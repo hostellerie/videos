@@ -11,7 +11,7 @@ $seo = new Videos_Seo(
 if (empty($_VIDEOS_CONF['enabled'])) {
     $publicTitle = VIDEOS_getPublicTitle();
     echo COM_createHTMLDocument(
-        COM_showMessageText('Le catalogue vidéo est désactivé.', '', true),
+        COM_showMessageText($LANG_VIDEOS['catalogue_disabled'], '', true),
         array(
             'pagetitle' => $publicTitle,
             'headercode' => $seo->catalogue($publicTitle, 1, false)
@@ -41,13 +41,13 @@ $perPage = isset($_VIDEOS_CONF['videos_per_page'])
 $pageCount = 1;
 
 if (!$bootstrap->isReady()) {
-    $message = 'Le catalogue vidéo est temporairement indisponible.';
+    $message = $LANG_VIDEOS['catalogue_unavailable'];
 } elseif ($isLocalSearch) {
     // Reuse exactly the same bounded local corpus as Geeklog Search API 2.
     // No YouTube API call is performed by a visitor search.
     $searchService = VIDEOS_getSearchService($bootstrap);
     if ($searchService === false) {
-        $message = 'La recherche vidéo est temporairement indisponible.';
+        $message = $LANG_VIDEOS['catalogue_search_unavailable'];
     } else {
         $matches = $searchService->search(
             $searchQuery,
@@ -81,7 +81,7 @@ if (!$bootstrap->isReady()) {
             true
         );
         if ($searchTotal === 0) {
-            $message = 'Aucune vidéo du catalogue ne correspond à cette recherche.';
+            $message = $LANG_VIDEOS['catalogue_search_empty'];
         }
     }
 } else {
@@ -119,11 +119,11 @@ if (!$bootstrap->isReady()) {
     $terms = $extractor->extract($context, $analysis);
     $query = $extractor->buildQuery($terms, $analysis['excluded_keywords']);
     if ($query === '') {
-        $message = 'La thématique vidéo doit être configurée par un administrateur.';
+        $message = $LANG_VIDEOS['catalogue_topic_required'];
     } else {
         $result = videos_public_search($bootstrap, $query, $_VIDEOS_CONF);
         if ($result === false) {
-            $message = 'Aucune vidéo n’est actuellement disponible.';
+            $message = $LANG_VIDEOS['catalogue_none_available'];
         } else {
             $catalogueContextKey = isset($result['cache_key']) &&
                 preg_match('/^[a-f0-9]{64}$/', $result['cache_key'])
@@ -244,8 +244,7 @@ $html = '<div class="videos-page">'
 
 if ($isLocalSearch) {
     $html .= '<div class="videos-search-summary"><strong>'
-        . COM_numberFormat($searchTotal) . '</strong> résultat(s) pour « '
-        . htmlspecialchars($searchQuery, ENT_QUOTES, 'UTF-8') . ' ».'
+        . COM_numberFormat($searchTotal) . '</strong> ' . htmlspecialchars(sprintf($LANG_VIDEOS['catalogue_search_results'], $searchQuery), ENT_QUOTES, 'UTF-8') . ''
         . ' <a href="'
         . htmlspecialchars(
             $_CONF['site_url'] . '/videos/index.php',
@@ -392,7 +391,7 @@ if ($isLocalSearch) {
 }
 $catalogueHeader .= "\n" . videos_catalogue_search_style();
 $pageTitle = $isLocalSearch
-    ? 'Recherche « ' . $searchQuery . ' » - ' . $publicTitle
+    ? sprintf($LANG_VIDEOS['catalogue_search_page_title'], $searchQuery) . ' - ' . $publicTitle
     : $publicTitle;
 if (!$isLocalSearch && $page > 1) {
     $pageTitle .= ' – Page ' . $page;
@@ -472,15 +471,15 @@ function videos_build_public_search_parameters($configuration)
 
 function videos_catalogue_search_form($action, $query)
 {
+    global $LANG_VIDEOS;
     return '<form class="videos-catalogue-search" method="get" action="'
         . htmlspecialchars($action, ENT_QUOTES, 'UTF-8') . '">'
-        . '<label for="videos-search-q">Rechercher dans le catalogue</label>'
+        . '<label for="videos-search-q">' . htmlspecialchars($LANG_VIDEOS['catalogue_search_label'], ENT_QUOTES, 'UTF-8') . '</label>'
         . '<div><input id="videos-search-q" type="search" name="q" maxlength="120"'
         . ' value="' . htmlspecialchars($query, ENT_QUOTES, 'UTF-8') . '"'
-        . ' placeholder="Titre, chaîne ou mots-clés">'
-        . '<button type="submit">Rechercher</button></div>'
-        . '<p>La recherche utilise les vidéos déjà connues du site et ne consomme '
-        . 'aucun quota YouTube supplémentaire.</p></form>';
+        . ' placeholder="' . htmlspecialchars($LANG_VIDEOS['catalogue_search_placeholder'], ENT_QUOTES, 'UTF-8') . '">'
+        . '<button type="submit">' . htmlspecialchars($LANG_VIDEOS['catalogue_search_button'], ENT_QUOTES, 'UTF-8') . '</button></div>'
+        . '<p>' . htmlspecialchars($LANG_VIDEOS['catalogue_search_help'], ENT_QUOTES, 'UTF-8') . '</p></form>';
 }
 
 function videos_catalogue_search_style()

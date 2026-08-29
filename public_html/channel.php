@@ -5,7 +5,7 @@ require_once '../lib-common.php';
 $channelId = isset($_GET['id']) ? COM_applyFilter($_GET['id']) : '';
 if (!Videos_Validator::youtubeChannelId($channelId) || empty($_VIDEOS_CONF['enabled'])) {
     echo COM_createHTMLDocument(
-        COM_showMessageText('Chaîne vidéo indisponible.', '', true),
+        COM_showMessageText($LANG_VIDEOS['channel_unavailable'], '', true),
         array(
             'pagetitle' => VIDEOS_getPublicTitle(),
             'headercode' => '<meta name="robots" content="noindex,nofollow">'
@@ -17,7 +17,7 @@ if (!Videos_Validator::youtubeChannelId($channelId) || empty($_VIDEOS_CONF['enab
 $bootstrap = new Videos_Bootstrap($_CONF);
 if (!$bootstrap->isReady()) {
     echo COM_createHTMLDocument(
-        COM_showMessageText('Chaîne vidéo temporairement indisponible.', '', true),
+        COM_showMessageText($LANG_VIDEOS['channel_temporarily_unavailable'], '', true),
         array(
             'pagetitle' => VIDEOS_getPublicTitle(),
             'headercode' => '<meta name="robots" content="noindex,nofollow">'
@@ -31,7 +31,7 @@ $cache = new Videos_Cache($store);
 $moderation = new Videos_Moderation($store);
 if ($moderation->isChannelExcluded($channelId)) {
     echo COM_createHTMLDocument(
-        COM_showMessageText('Cette chaîne n’est pas publiée.', '', true),
+        COM_showMessageText($LANG_VIDEOS['channel_not_published'], '', true),
         array(
             'pagetitle' => VIDEOS_getPublicTitle(),
             'headercode' => '<meta name="robots" content="noindex,nofollow">'
@@ -116,7 +116,7 @@ foreach ($poolItems as $videoId => $item) {
 if (!VIDEOS_channelPageEligible($channelId, $bootstrap) || count($videos) === 0) {
     echo COM_createHTMLDocument(
         COM_showMessageText(
-            'Cette chaîne ne dispose pas encore d’une sélection éditoriale suffisante.',
+            $LANG_VIDEOS['channel_insufficient_selection'],
             '',
             true
         ),
@@ -131,8 +131,7 @@ if (!VIDEOS_channelPageEligible($channelId, $bootstrap) || count($videos) === 0)
 $canonical = plugin_idtourl_videos('', 'channel:' . $channelId);
 $meta = $description !== ''
     ? $description
-    : 'Découvrez les vidéos remarquables de ' . $title
-        . ' sélectionnées dans ' . VIDEOS_getPublicTitle() . '.';
+    : sprintf($LANG_VIDEOS['channel_meta_fallback'], $title, VIDEOS_getPublicTitle());
 $meta = function_exists('MBYTE_substr')
     ? MBYTE_substr($meta, 0, 160) : substr($meta, 0, 160);
 $header = '<link rel="canonical" href="'
@@ -167,34 +166,33 @@ if ($priority) {
 }
 if ($pinnedCount > 0) {
     $html .= '<span class="videos-card-badge videos-pool-badge">'
-        . $pinnedCount . ' vidéo' . ($pinnedCount > 1 ? 's' : '') . ' épinglée'
-        . ($pinnedCount > 1 ? 's' : '') . '</span>';
+        . $pinnedCount . ' ' . ($pinnedCount > 1 ? $LANG_VIDEOS['channel_pinned_videos'] : $LANG_VIDEOS['channel_pinned_video']) . '</span>';
 }
 $html .= '</div></header>';
 
-$html .= '<section class="videos-channel-facts" aria-label="Informations sur la chaîne">';
+$html .= '<section class="videos-channel-facts" aria-label="' . htmlspecialchars($LANG_VIDEOS['channel_information'], ENT_QUOTES, 'UTF-8') . '">';
 if ($subscriberCount !== null && !$hiddenSubscribers) {
-    $html .= videos_channel_fact('Abonnés', COM_numberFormat($subscriberCount));
+    $html .= videos_channel_fact($LANG_VIDEOS['channel_subscribers'], COM_numberFormat($subscriberCount));
 }
 if ($viewCount !== null) {
-    $html .= videos_channel_fact('Vues YouTube', COM_numberFormat($viewCount));
+    $html .= videos_channel_fact($LANG_VIDEOS['channel_youtube_views'], COM_numberFormat($viewCount));
 }
 if ($youtubeVideoCount !== null) {
-    $html .= videos_channel_fact('Vidéos sur YouTube', COM_numberFormat($youtubeVideoCount));
+    $html .= videos_channel_fact($LANG_VIDEOS['channel_youtube_videos'], COM_numberFormat($youtubeVideoCount));
 }
 if (!empty($rank['video_count'])) {
-    $html .= videos_channel_fact('Vidéos remarquables locales', COM_numberFormat((int) $rank['video_count']));
+    $html .= videos_channel_fact($LANG_VIDEOS['channel_local_videos'], COM_numberFormat((int) $rank['video_count']));
 }
 if ($permanentCount > 0) {
-    $html .= videos_channel_fact('Sélection permanente', COM_numberFormat($permanentCount));
+    $html .= videos_channel_fact($LANG_VIDEOS['channel_permanent_selection'], COM_numberFormat($permanentCount));
 }
 if ($publishedAt !== false) {
-    $html .= videos_channel_fact('Chaîne créée', date('d/m/Y', $publishedAt));
+    $html .= videos_channel_fact($LANG_VIDEOS['channel_created'], date('d/m/Y', $publishedAt));
 }
 $html .= '</section>';
 
 if ($description !== '') {
-    $html .= '<section class="videos-channel-about"><h2>À propos de la chaîne</h2><p>'
+    $html .= '<section class="videos-channel-about"><h2>' . htmlspecialchars($LANG_VIDEOS['channel_about'], ENT_QUOTES, 'UTF-8') . '</h2><p>'
         . nl2br(htmlspecialchars($description, ENT_QUOTES, 'UTF-8'))
         . '</p></section>';
 }
@@ -202,7 +200,7 @@ if ($description !== '') {
 $html .= '<p class="videos-channel-external"><a rel="noopener noreferrer" target="_blank" href="https://www.youtube.com/channel/'
     . rawurlencode($channelId) . '">Voir la chaîne sur YouTube</a></p>';
 
-$html .= '<section><h2>Vidéos remarquables</h2><div class="videos-grid">';
+$html .= '<section><h2>' . htmlspecialchars($LANG_VIDEOS['channel_featured_videos'], ENT_QUOTES, 'UTF-8') . '</h2><div class="videos-grid">';
 foreach ($videos as $videoId => $video) {
     $vs = isset($video['snippet']) ? $video['snippet'] : array();
     $videoTitle = !empty($vs['title']) ? $vs['title'] : $videoId;

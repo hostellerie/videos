@@ -239,14 +239,15 @@ echo COM_createHTMLDocument(
 
 function videos_stats_nav($configuration, $active)
 {
+    global $LANG_VIDEOS;
     $base = $configuration['site_admin_url'] . '/plugins/videos/';
     $items = array(
-        'overview' => array('index.php', 'Vue générale'),
-        'actions' => array('actions.php', 'Actions'),
-        'stats' => array('stats.php', 'Statistiques'),
-        'moderation' => array('moderation.php', 'Modération')
+        'overview' => array('index.php', $LANG_VIDEOS['admin_nav_overview']),
+        'actions' => array('actions.php', $LANG_VIDEOS['admin_nav_actions']),
+        'stats' => array('stats.php', $LANG_VIDEOS['admin_nav_stats']),
+        'moderation' => array('moderation.php', $LANG_VIDEOS['admin_nav_moderation'])
     );
-    $html = '<nav class="videos-navigation" aria-label="Administration Videos"><ul>';
+    $html = '<nav class="videos-navigation" aria-label="' . htmlspecialchars($LANG_VIDEOS['admin_navigation'], ENT_QUOTES, 'UTF-8') . '"><ul>';
     foreach ($items as $key => $item) {
         $html .= '<li><a href="'
             . htmlspecialchars($base . $item[0], ENT_QUOTES, 'UTF-8') . '"'

@@ -199,6 +199,45 @@ $LANG_VIDEOS = array(
     'video_about_title' => 'About this video'
 );
 
+// 0.18.0 interface strings
+$LANG_VIDEOS['admin_nav_overview'] = 'Overview';
+$LANG_VIDEOS['admin_nav_actions'] = 'Actions';
+$LANG_VIDEOS['admin_nav_stats'] = 'Statistics';
+$LANG_VIDEOS['admin_nav_moderation'] = 'Moderation';
+$LANG_VIDEOS['admin_navigation'] = 'Videos administration';
+$LANG_VIDEOS['catalogue_disabled'] = 'The video catalogue is disabled.';
+$LANG_VIDEOS['catalogue_unavailable'] = 'The video catalogue is temporarily unavailable.';
+$LANG_VIDEOS['catalogue_search_unavailable'] = 'Video search is temporarily unavailable.';
+$LANG_VIDEOS['catalogue_search_empty'] = 'No catalogue video matches this search.';
+$LANG_VIDEOS['catalogue_topic_required'] = 'The video topic must be configured by an administrator.';
+$LANG_VIDEOS['catalogue_none_available'] = 'No videos are currently available.';
+$LANG_VIDEOS['catalogue_search_label'] = 'Search the catalogue';
+$LANG_VIDEOS['catalogue_search_placeholder'] = 'Title, channel or keywords';
+$LANG_VIDEOS['catalogue_search_button'] = 'Search';
+$LANG_VIDEOS['catalogue_search_help'] = 'Search uses videos already known to this site and consumes no additional YouTube quota.';
+$LANG_VIDEOS['catalogue_search_results'] = 'result(s) for “%s”.';
+$LANG_VIDEOS['catalogue_show_all'] = 'Show the full catalogue';
+$LANG_VIDEOS['catalogue_search_page_title'] = 'Search “%s”';
+$LANG_VIDEOS['channel_unavailable'] = 'Video channel unavailable.';
+$LANG_VIDEOS['channel_temporarily_unavailable'] = 'Video channel temporarily unavailable.';
+$LANG_VIDEOS['channel_not_published'] = 'This channel is not published.';
+$LANG_VIDEOS['channel_insufficient_selection'] = 'This channel does not yet have a sufficient editorial selection.';
+$LANG_VIDEOS['channel_meta_fallback'] = 'Discover noteworthy videos from %s selected in %s.';
+$LANG_VIDEOS['channel_priority_badge'] = 'Priority channel';
+$LANG_VIDEOS['channel_pinned_video'] = 'pinned video';
+$LANG_VIDEOS['channel_pinned_videos'] = 'pinned videos';
+$LANG_VIDEOS['channel_information'] = 'Channel information';
+$LANG_VIDEOS['channel_subscribers'] = 'Subscribers';
+$LANG_VIDEOS['channel_youtube_views'] = 'YouTube views';
+$LANG_VIDEOS['channel_youtube_videos'] = 'Videos on YouTube';
+$LANG_VIDEOS['channel_local_videos'] = 'Noteworthy local videos';
+$LANG_VIDEOS['channel_permanent_selection'] = 'Permanent selection';
+$LANG_VIDEOS['channel_created'] = 'Channel created';
+$LANG_VIDEOS['channel_about'] = 'About the channel';
+$LANG_VIDEOS['channel_view_youtube'] = 'View channel on YouTube';
+$LANG_VIDEOS['channel_featured_videos'] = 'Noteworthy videos';
+$LANG_VIDEOS['channel_pinned_badge'] = 'Pinned';
+
 $LANG_VIDEOS_FAQ = array(
     'catalogue_selection_q' => 'How are the catalogue videos selected?',
     'catalogue_selection_a' => 'The plugin combines the site topic, administrator settings, YouTube availability and local recommendations. Blocked, private and non-embeddable videos are excluded.',

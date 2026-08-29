@@ -199,6 +199,45 @@ $LANG_VIDEOS = array(
     'video_about_title' => 'À propos de cette vidéo'
 );
 
+// 0.18.0 interface strings
+$LANG_VIDEOS['admin_nav_overview'] = 'Vue générale';
+$LANG_VIDEOS['admin_nav_actions'] = 'Actions';
+$LANG_VIDEOS['admin_nav_stats'] = 'Statistiques';
+$LANG_VIDEOS['admin_nav_moderation'] = 'Modération';
+$LANG_VIDEOS['admin_navigation'] = 'Administration Videos';
+$LANG_VIDEOS['catalogue_disabled'] = 'Le catalogue vidéo est désactivé.';
+$LANG_VIDEOS['catalogue_unavailable'] = 'Le catalogue vidéo est temporairement indisponible.';
+$LANG_VIDEOS['catalogue_search_unavailable'] = 'La recherche vidéo est temporairement indisponible.';
+$LANG_VIDEOS['catalogue_search_empty'] = 'Aucune vidéo du catalogue ne correspond à cette recherche.';
+$LANG_VIDEOS['catalogue_topic_required'] = 'La thématique vidéo doit être configurée par un administrateur.';
+$LANG_VIDEOS['catalogue_none_available'] = 'Aucune vidéo n’est actuellement disponible.';
+$LANG_VIDEOS['catalogue_search_label'] = 'Rechercher dans le catalogue';
+$LANG_VIDEOS['catalogue_search_placeholder'] = 'Titre, chaîne ou mots-clés';
+$LANG_VIDEOS['catalogue_search_button'] = 'Rechercher';
+$LANG_VIDEOS['catalogue_search_help'] = 'La recherche utilise les vidéos déjà connues du site et ne consomme aucun quota YouTube supplémentaire.';
+$LANG_VIDEOS['catalogue_search_results'] = 'résultat(s) pour « %s ».';
+$LANG_VIDEOS['catalogue_show_all'] = 'Afficher tout le catalogue';
+$LANG_VIDEOS['catalogue_search_page_title'] = 'Recherche « %s »';
+$LANG_VIDEOS['channel_unavailable'] = 'Chaîne vidéo indisponible.';
+$LANG_VIDEOS['channel_temporarily_unavailable'] = 'Chaîne vidéo temporairement indisponible.';
+$LANG_VIDEOS['channel_not_published'] = 'Cette chaîne n’est pas publiée.';
+$LANG_VIDEOS['channel_insufficient_selection'] = 'Cette chaîne ne dispose pas encore d’une sélection éditoriale suffisante.';
+$LANG_VIDEOS['channel_meta_fallback'] = 'Découvrez les vidéos remarquables de %s sélectionnées dans %s.';
+$LANG_VIDEOS['channel_priority_badge'] = 'Chaîne prioritaire';
+$LANG_VIDEOS['channel_pinned_video'] = 'vidéo épinglée';
+$LANG_VIDEOS['channel_pinned_videos'] = 'vidéos épinglées';
+$LANG_VIDEOS['channel_information'] = 'Informations sur la chaîne';
+$LANG_VIDEOS['channel_subscribers'] = 'Abonnés';
+$LANG_VIDEOS['channel_youtube_views'] = 'Vues YouTube';
+$LANG_VIDEOS['channel_youtube_videos'] = 'Vidéos sur YouTube';
+$LANG_VIDEOS['channel_local_videos'] = 'Vidéos remarquables locales';
+$LANG_VIDEOS['channel_permanent_selection'] = 'Sélection permanente';
+$LANG_VIDEOS['channel_created'] = 'Chaîne créée';
+$LANG_VIDEOS['channel_about'] = 'À propos de la chaîne';
+$LANG_VIDEOS['channel_view_youtube'] = 'Voir la chaîne sur YouTube';
+$LANG_VIDEOS['channel_featured_videos'] = 'Vidéos remarquables';
+$LANG_VIDEOS['channel_pinned_badge'] = 'Épinglée';
+
 $LANG_VIDEOS_FAQ = array(
     'catalogue_selection_q' => 'Comment les vidéos du catalogue sont-elles sélectionnées ?',
     'catalogue_selection_a' => 'Le plugin combine la thématique du site, les réglages administratifs, la disponibilité sur YouTube et les recommandations locales. Les vidéos bloquées, privées ou non intégrables sont exclues.',
