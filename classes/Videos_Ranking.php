@@ -35,6 +35,8 @@ class Videos_Ranking
         if (!Videos_Validator::youtubeVideoId($videoId)) {
             return false;
         }
+        $before = $this->getGlobal(50);
+        $beforeSignature = $this->rankingSignature($before);
         $item = $this->calculate($videoId, $video);
         $result = $this->store->update(
             'rankings/global.json',
@@ -57,10 +59,15 @@ class Videos_Ranking
         if ($result === false) {
             return false;
         }
+        $afterItems = isset($result['data']['items']) && is_array($result['data']['items'])
+            ? array_slice($result['data']['items'], 0, 50, true) : array();
+        if ($beforeSignature !== $this->rankingSignature($afterItems) &&
+            function_exists('VIDEOS_signalSaved')) {
+            VIDEOS_signalSaved('rankings:videos');
+        }
         if ($updateChannels) {
             $this->channelRanking->rebuildFromVideos(
-                isset($result['data']['items'])
-                    ? $result['data']['items'] : array()
+                isset($result['data']['items']) ? $result['data']['items'] : array()
             );
         }
         return $result;
@@ -95,6 +102,7 @@ class Videos_Ranking
 
     public function rebuild()
     {
+        $beforeSignature = $this->rankingSignature($this->getGlobal(50));
         $videoIds = $this->discoverVideoIds(5000);
         $items = array();
         foreach ($videoIds as $videoId) {
@@ -123,6 +131,10 @@ class Videos_Ranking
         if (!$written) {
             return false;
         }
+        if ($beforeSignature !== $this->rankingSignature(array_slice($items, 0, 50, true)) &&
+            function_exists('VIDEOS_signalSaved')) {
+            VIDEOS_signalSaved('rankings:videos');
+        }
         $this->channelRanking->rebuildFromVideos($items);
         return count($items);
     }
@@ -138,6 +150,14 @@ class Videos_Ranking
             );
         }
         return $leftScore > $rightScore ? -1 : 1;
+    }
+
+    private function rankingSignature($items)
+    {
+        if (!is_array($items)) {
+            return '';
+        }
+        return hash('sha256', implode('|', array_keys($items)));
     }
 
     private function calculate($videoId, $video)
