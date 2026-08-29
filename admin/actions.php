@@ -44,7 +44,7 @@ if ($store && $_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $searchResults = videos_actions_test_search($bootstrap, $query, $_VIDEOS_CONF);
                 $message = $searchResults === false
-                    ? 'La recherche de test a échoué.'
+                    ? videos_actions_failure_message($store, $_VIDEOS_CONF, 'La recherche de test a échoué.')
                     : count($searchResults['video_ids']) . ' vidéo(s) valide(s) trouvée(s).';
             }
         } elseif ($action === 'seed_discovery' && SEC_hasRights('videos.maintenance')) {
@@ -55,7 +55,7 @@ if ($store && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 $result = videos_actions_seed_discovery($bootstrap, $query, $_VIDEOS_CONF);
                 $message = is_array($result) && !empty($result['success'])
                     ? (int) $result['added'] . ' vidéo(s) ajoutée(s) au réservoir.'
-                    : 'L’amorçage du réservoir a échoué.';
+                    : videos_actions_failure_message($store, $_VIDEOS_CONF, 'L’amorçage du réservoir a échoué.');
             }
         } elseif ($action === 'clear_cache' && SEC_hasRights('videos.maintenance')) {
             $scope = isset($_POST['cache_scope']) ? COM_applyFilter($_POST['cache_scope']) : '';
@@ -261,6 +261,29 @@ $html .= '</div>';
 
 $html = VIDEOS_localizeAdminText($html);
 echo COM_createHTMLDocument($html, array('pagetitle' => VIDEOS_localizeAdminText('Videos — Actions'), 'headercode' => VIDEOS_adminHeaderCode()));
+
+function videos_actions_failure_message($store, $configuration, $prefix)
+{
+    $status = (new Videos_Quota($store))->status();
+    $data = isset($status['data']) && is_array($status['data']) ? $status['data'] : array();
+    $counts = isset($data['counts']) && is_array($data['counts']) ? $data['counts'] : array();
+    $count = isset($counts['search']) ? (int) $counts['search'] : 0;
+    $limit = isset($configuration['youtube_daily_search_limit'])
+        ? max(0, (int) $configuration['youtube_daily_search_limit']) : 20;
+    if (!empty($data['suspended'])) {
+        $code = !empty($data['last_error']['code']) ? (string) $data['last_error']['code'] : 'quota';
+        return $prefix . ' Le quota YouTube est suspendu (' . $code . ').';
+    }
+    if ($limit > 0 && $count >= $limit) {
+        return $prefix . ' La limite locale de recherches YouTube est atteinte ('
+            . $count . '/' . $limit . ' aujourd’hui).';
+    }
+    if (!empty($data['last_error']['code'])) {
+        return $prefix . ' Dernière erreur YouTube : ' . (string) $data['last_error']['code']
+            . '. Consultez Statistiques > Activité YouTube API.';
+    }
+    return $prefix . ' Consultez Statistiques > Activité YouTube API pour le diagnostic.';
+}
 
 function videos_actions_test_search($bootstrap, $query, $configuration)
 {

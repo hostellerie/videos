@@ -33,6 +33,18 @@ $quotaData = isset($quotaStatus['data']) && is_array($quotaStatus['data'])
     ? $quotaStatus['data'] : array();
 $counts = isset($quotaData['counts']) && is_array($quotaData['counts'])
     ? $quotaData['counts'] : array();
+$searchLimit = isset($_VIDEOS_CONF['youtube_daily_search_limit'])
+    ? max(0, (int) $_VIDEOS_CONF['youtube_daily_search_limit']) : 20;
+$searchCount = isset($counts['search']) ? (int) $counts['search'] : 0;
+$localSearchState = ($searchLimit > 0 && $searchCount >= $searchLimit)
+    ? 'Limite atteinte (' . $searchCount . '/' . $searchLimit . ')'
+    : $searchCount . '/' . ($searchLimit > 0 ? $searchLimit : '∞');
+$lastApiError = !empty($quotaData['last_error']['code'])
+    ? (string) $quotaData['last_error']['code'] : 'Aucune';
+$lastApiErrorAt = !empty($quotaData['last_error']['at'])
+    ? videos_stats_date_text($quotaData['last_error']['at']) : 'Jamais';
+$lastRejection = isset($quotaData['last_rejection']) && is_array($quotaData['last_rejection'])
+    ? $quotaData['last_rejection'] : array();
 $cacheStatus = (new Videos_CacheMaintenance($store))->inspect();
 $reservoirStatus = (new Videos_DiscoveryReservoir($store, $cache))->status();
 $pool = new Videos_PermanentPool($store, $cache);
@@ -148,7 +160,24 @@ $html .= '<section class="videos-admin-section"><h2>Activité YouTube API</h2>'
     . videos_stat_card(
         'Quota suspendu',
         !empty($quotaData['suspended']) ? 'Oui' : 'Non',
-        'Protection locale du quota'
+        'Suspension après une erreur de quota signalée par YouTube'
+    )
+    . videos_stat_card(
+        'Limite locale recherches',
+        $localSearchState,
+        'Plafond quotidien configuré dans Videos'
+    )
+    . videos_stat_card(
+        'Dernière recherche',
+        videos_stats_date_text(isset($quotaData['last_search_at']) ? $quotaData['last_search_at'] : null),
+        'Dernière réservation search.list autorisée',
+        true
+    )
+    . videos_stat_card(
+        'Dernière erreur API',
+        $lastApiError,
+        $lastApiErrorAt,
+        true
     )
     . videos_stat_card(
         'Dernier succès',
@@ -159,7 +188,19 @@ $html .= '<section class="videos-admin-section"><h2>Activité YouTube API</h2>'
         'Dernière réponse API valide',
         true
     )
-    . '</div></section>';
+    . '</div>';
+if (!empty($lastRejection)) {
+    $reason = isset($lastRejection['reason']) ? (string) $lastRejection['reason'] : '';
+    $method = isset($lastRejection['method']) ? (string) $lastRejection['method'] : '';
+    $count = isset($lastRejection['count']) ? (int) $lastRejection['count'] : 0;
+    $limit = isset($lastRejection['limit']) ? (int) $lastRejection['limit'] : 0;
+    $at = !empty($lastRejection['at']) ? videos_stats_date_text($lastRejection['at']) : 'Jamais';
+    $html .= '<p class="videos-admin-help"><strong>Dernier appel refusé :</strong> '
+        . htmlspecialchars($method, ENT_QUOTES, 'UTF-8') . ' — '
+        . htmlspecialchars($reason, ENT_QUOTES, 'UTF-8') . ' (' . $count . '/' . $limit . ') — '
+        . htmlspecialchars($at, ENT_QUOTES, 'UTF-8') . '.</p>';
+}
+$html .= '</section>';
 
 $cacheLabels = array(
     'search' => 'Résultats de recherche',

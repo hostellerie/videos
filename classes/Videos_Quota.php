@@ -31,17 +31,28 @@ class Videos_Quota
                 'suspended' => false,
                 'last_search_at' => null,
                 'last_success_at' => null,
-                'last_error' => null
+                'last_error' => null,
+                'last_rejection' => null
             ),
             function ($document) use ($method, $limit) {
-                if (!empty($document['data']['suspended'])) {
-                    $document['data']['reservation_granted'] = false;
-                    return $document;
-                }
                 $count = isset($document['data']['counts'][$method])
                     ? (int) $document['data']['counts'][$method] : 0;
+                if (!empty($document['data']['suspended'])) {
+                    $document['data']['reservation_granted'] = false;
+                    $document['data']['last_rejection'] = array(
+                        'method' => $method, 'reason' => 'quota_suspended',
+                        'count' => $count, 'limit' => $limit,
+                        'at' => gmdate('Y-m-d\TH:i:s\Z')
+                    );
+                    return $document;
+                }
                 if ($limit > 0 && $count >= $limit) {
                     $document['data']['reservation_granted'] = false;
+                    $document['data']['last_rejection'] = array(
+                        'method' => $method, 'reason' => 'local_limit_reached',
+                        'count' => $count, 'limit' => $limit,
+                        'at' => gmdate('Y-m-d\TH:i:s\Z')
+                    );
                     return $document;
                 }
                 $document['data']['counts'][$method] = $count + 1;
@@ -84,7 +95,8 @@ class Videos_Quota
                 'suspended' => false,
                 'last_search_at' => null,
                 'last_success_at' => null,
-                'last_error' => null
+                'last_error' => null,
+                'last_rejection' => null
             )
         );
     }
@@ -101,7 +113,8 @@ class Videos_Quota
                 'suspended' => false,
                 'last_search_at' => null,
                 'last_success_at' => null,
-                'last_error' => null
+                'last_error' => null,
+                'last_rejection' => null
             ),
             function ($document) use ($error, $suspend, $success) {
                 if ($success) {

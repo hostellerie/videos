@@ -419,6 +419,25 @@ foreach (array(
 }
 
 foreach (array(
+    'La limite locale de recherches YouTube est atteinte (' => 'The local YouTube search limit has been reached (',
+    ' aujourd’hui).' => ' today).',
+    'Le quota YouTube est suspendu (' => 'The YouTube quota is suspended (',
+    'Dernière erreur YouTube : ' => 'Last YouTube error: ',
+    'Consultez Statistiques > Activité YouTube API pour le diagnostic.' => 'See Statistics > YouTube API activity for diagnostics.',
+    'Limite locale recherches' => 'Local search limit',
+    'Limite atteinte (' => 'Limit reached (',
+    'Plafond quotidien configuré dans Videos' => 'Daily limit configured in Videos',
+    'Dernière recherche' => 'Last search',
+    'Dernière réservation search.list autorisée' => 'Last allowed search.list reservation',
+    'Dernière erreur API' => 'Last API error',
+    'Aucune' => 'None',
+    'Suspension après une erreur de quota signalée par YouTube' => 'Suspension after a quota error reported by YouTube',
+    'Dernier appel refusé :' => 'Last rejected call:',
+) as $videosAdminSource => $videosAdminTarget) {
+    $LANG_VIDEOS_ADMIN_TEXT[$videosAdminSource] = $videosAdminTarget;
+}
+
+foreach (array(
     'Recherche Geeklog' => 'Geeklog search',
     'Statistiques Geeklog' => 'Geeklog statistics',
     'Recherche du catalogue' => 'Catalogue search',
