@@ -139,7 +139,18 @@ $header = '<link rel="canonical" href="'
     . htmlspecialchars($canonical, ENT_QUOTES, 'UTF-8') . '">\n'
     . '<meta name="robots" content="index,follow">\n'
     . '<meta name="description" content="'
-    . htmlspecialchars($meta, ENT_QUOTES, 'UTF-8') . '">';
+    . htmlspecialchars($meta, ENT_QUOTES, 'UTF-8') . '">\n'
+    . '<style>'
+    . '.videos-channel-header{display:flex;gap:1.25rem;align-items:center;margin:0 0 1.25rem}'
+    . '.videos-channel-avatar{width:112px;height:112px;border-radius:50%;object-fit:cover;flex:0 0 112px}'
+    . '.videos-channel-heading h1{margin:0 0 .45rem}'
+    . '.videos-channel-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin:1rem 0 1.5rem}'
+    . '.videos-channel-fact{padding:.85rem;border:1px solid rgba(127,127,127,.28);border-radius:.5rem;background:rgba(127,127,127,.05)}'
+    . '.videos-channel-fact strong,.videos-channel-fact span{display:block}.videos-channel-fact strong{font-size:1.15rem}.videos-channel-fact span{margin-top:.25rem;opacity:.75;font-size:.88rem}'
+    . '.videos-channel-about{margin:1.25rem 0}.videos-channel-about p{line-height:1.6}'
+    . '.videos-channel-external{margin:1rem 0 1.5rem}'
+    . '@media(max-width:600px){.videos-channel-header{align-items:flex-start}.videos-channel-avatar{width:80px;height:80px;flex-basis:80px}}'
+    . '</style>';
 
 $html = '<div class="videos-page videos-channel-page">'
     . VIDEOS_renderNavigation('')
