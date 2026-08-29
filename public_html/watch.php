@@ -56,7 +56,6 @@ $embedUrl = $embedHost . '/embed/' . rawurlencode($videoId)
     . '&origin=' . rawurlencode($_CONF['site_url']);
 $seoHeader = $seo->video($videoId, $video, $description, $embedHost . '/embed/' . rawurlencode($videoId));
 $duration = isset($video['videos_duration_seconds']) ? (int) $video['videos_duration_seconds'] : 0;
-$csrfToken = SEC_createToken();
 $ratingStatsService = new Videos_RatingStats($bootstrap->getStore());
 $ratingStats = $ratingStatsService->get($videoId);
 $faqService = new Videos_Faq($LANG_VIDEOS_FAQ, $_VIDEOS_CONF);
@@ -118,6 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
         }
     }
 }
+$csrfToken = SEC_createToken();
+$curationToken = SEC_createToken();
 $isPermanent = $permanentPool->contains($videoId);
 $isPinned = $permanentPool->isPinned($videoId);
 
@@ -146,13 +147,13 @@ if (SEC_hasRights('videos.moderate')) {
     $curationUrl = $localUrl;
     $html .= '<aside class="videos-moderation-actions" aria-label="Actions éditoriales"><strong>Actions éditoriales</strong><div>';
     if (!$isPermanent) {
-        $html .= videos_watch_curation_form($curationUrl, 'pool_add', $videoId, 'Ajouter au catalogue permanent', $csrfToken);
+        $html .= videos_watch_curation_form($curationUrl, 'pool_add', $videoId, 'Ajouter au catalogue permanent', $curationToken);
     } elseif (!$isPinned) {
-        $html .= videos_watch_curation_form($curationUrl, 'pool_pin', $videoId, 'Épingler', $csrfToken)
-            . videos_watch_curation_form($curationUrl, 'pool_remove', $videoId, 'Retirer du permanent', $csrfToken);
+        $html .= videos_watch_curation_form($curationUrl, 'pool_pin', $videoId, 'Épingler', $curationToken)
+            . videos_watch_curation_form($curationUrl, 'pool_remove', $videoId, 'Retirer du permanent', $curationToken);
     } else {
-        $html .= videos_watch_curation_form($curationUrl, 'pool_unpin', $videoId, 'Désépingler', $csrfToken)
-            . videos_watch_curation_form($curationUrl, 'pool_remove', $videoId, 'Retirer du permanent', $csrfToken);
+        $html .= videos_watch_curation_form($curationUrl, 'pool_unpin', $videoId, 'Désépingler', $curationToken)
+            . videos_watch_curation_form($curationUrl, 'pool_remove', $videoId, 'Retirer du permanent', $curationToken);
     }
     $html .= '<a href="' . htmlspecialchars($quickModerationUrl . '&entity=video&entity_id=' . rawurlencode($videoId), ENT_QUOTES, 'UTF-8') . '">'
         . htmlspecialchars($LANG_VIDEOS['moderation_block_video'], ENT_QUOTES, 'UTF-8') . '</a>';
