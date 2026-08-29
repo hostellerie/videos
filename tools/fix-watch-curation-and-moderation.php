@@ -17,16 +17,29 @@ function write_text($path, $content)
     }
 }
 
-// 1) Handle curation directly on watch.php so the CSRF token is checked on
-// the same endpoint that created it.
+function remove_between($content, $start, $end)
+{
+    $startPos = strpos($content, $start);
+    if ($startPos === false) {
+        throw new RuntimeException('Start marker not found: ' . $start);
+    }
+    $endPos = strpos($content, $end, $startPos + strlen($start));
+    if ($endPos === false) {
+        throw new RuntimeException('End marker not found: ' . $end);
+    }
+    return substr($content, 0, $startPos) . substr($content, $endPos);
+}
+
+// Curation is handled on watch.php itself: the CSRF token is created and
+// checked by the same endpoint instead of being posted into /admin/.
 $watchPath = $root . '/public_html/watch.php';
 $watch = read_text($watchPath);
-$needle = <<<'PHP'
+$oldPool = <<<'PHP'
 $permanentPool = new Videos_PermanentPool($bootstrap->getStore(), $cache);
 $isPermanent = $permanentPool->contains($videoId);
 $isPinned = $permanentPool->isPinned($videoId);
 PHP;
-$replacement = <<<'PHP'
+$newPool = <<<'PHP'
 $permanentPool = new Videos_PermanentPool($bootstrap->getStore(), $cache);
 $curationMessage = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
@@ -53,28 +66,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
                 $rankingItem
             );
             $curationMessage = $saved
-                ? (isset($LANG_VIDEOS['curation_saved'])
-                    ? $LANG_VIDEOS['curation_saved'] : 'Editorial decision saved.')
-                : (isset($LANG_VIDEOS['curation_failed'])
-                    ? $LANG_VIDEOS['curation_failed'] : 'Unable to save this editorial decision.');
+                ? $LANG_VIDEOS['curation_saved']
+                : $LANG_VIDEOS['curation_failed'];
         }
     }
 }
 $isPermanent = $permanentPool->contains($videoId);
 $isPinned = $permanentPool->isPinned($videoId);
 PHP;
-if (strpos($watch, $needle) === false) {
+if (strpos($watch, $oldPool) === false) {
     throw new RuntimeException('Permanent pool block not found in watch.php');
 }
-$watch = str_replace($needle, $replacement, $watch);
+$watch = str_replace($oldPool, $newPool, $watch);
 
-// Show the curation result in context.
-$needle = <<<'PHP'
+$oldCurationStart = <<<'PHP'
 if (SEC_hasRights('videos.moderate')) {
     $quickModerationUrl = $_CONF['site_admin_url'] . '/plugins/videos/quick_moderation.php?video_id=' . rawurlencode($videoId);
     $curationUrl = $_CONF['site_admin_url'] . '/plugins/videos/actions.php';
 PHP;
-$replacement = <<<'PHP'
+$newCurationStart = <<<'PHP'
 if ($curationMessage !== '') {
     $html .= COM_showMessageText($curationMessage, '', true);
 }
@@ -82,29 +92,19 @@ if (SEC_hasRights('videos.moderate')) {
     $quickModerationUrl = $_CONF['site_admin_url'] . '/plugins/videos/quick_moderation.php?video_id=' . rawurlencode($videoId);
     $curationUrl = $localUrl;
 PHP;
-if (strpos($watch, $needle) === false) {
+if (strpos($watch, $oldCurationStart) === false) {
     throw new RuntimeException('Curation URL block not found in watch.php');
 }
-$watch = str_replace($needle, $replacement, $watch);
+$watch = str_replace($oldCurationStart, $newCurationStart, $watch);
+$watch = str_replace('name="videos_action"', 'name="videos_curation_action"', $watch);
 
-// Change curation forms to use a dedicated action field interpreted locally.
-$watch = str_replace(
-    "name=\"videos_action\" value=\"' . htmlspecialchars(\$action, ENT_QUOTES, 'UTF-8') . '\"",
-    "name=\"videos_curation_action\" value=\"' . htmlspecialchars(\$action, ENT_QUOTES, 'UTF-8') . '\"",
-    $watch
-);
-
-// If the helper uses a literal videos_action string instead of the escaped pattern.
-$watch = str_replace("name=\"videos_action\" value=\"' . \$action . '\"", "name=\"videos_curation_action\" value=\"' . \$action . '\"", $watch);
-
-// Do not render the delete-rating button at all when no personal rating exists.
-$old = <<<'PHP'
+$oldDelete = <<<'PHP'
 $html .= '</fieldset><button type="button" class="videos-rating-delete" data-delete-rating'
     . ($personalRating > 0 ? '' : ' hidden') . ' disabled>'
     . htmlspecialchars($LANG_VIDEOS['rating_delete'], ENT_QUOTES, 'UTF-8')
     . '</button><p class="videos-rating-status" aria-live="polite">'
 PHP;
-$new = <<<'PHP'
+$newDelete = <<<'PHP'
 $html .= '</fieldset>';
 if ($personalRating > 0) {
     $html .= '<button type="button" class="videos-rating-delete" data-delete-rating disabled>'
@@ -113,49 +113,35 @@ if ($personalRating > 0) {
 }
 $html .= '<p class="videos-rating-status" aria-live="polite">'
 PHP;
-if (strpos($watch, $old) === false) {
-    throw new RuntimeException('Rating delete button block not found in watch.php');
+if (strpos($watch, $oldDelete) === false) {
+    throw new RuntimeException('Rating delete block not found in watch.php');
 }
-$watch = str_replace($old, $new, $watch);
+$watch = str_replace($oldDelete, $newDelete, $watch);
 write_text($watchPath, $watch);
 
-// 2) Remove duplicate channel-state processing and UI from actions.php.
+// Channel moderation now lives only on moderation.php.
 $actionsPath = $root . '/admin/actions.php';
 $actions = read_text($actionsPath);
-$actions = preg_replace(
-    "/\n        } elseif \(\$action === 'channel_state' && SEC_hasRights\('videos\.moderate'\)\) \{.*?\n        } elseif \(\$action === 'signal_public_pages'\) \{/s",
-    "\n        } elseif (\$action === 'signal_public_pages') {",
-    $actions,
-    1,
-    $countHandler
-);
-if ($countHandler !== 1) {
-    throw new RuntimeException('channel_state handler not removed from actions.php');
-}
+$handlerStart = "        } elseif (\$action === 'channel_state' && SEC_hasRights('videos.moderate')) {";
+$handlerEnd = "        } elseif (\$action === 'signal_public_pages') {";
+$actions = remove_between($actions, $handlerStart, $handlerEnd);
 $actions = str_replace("\n\$priorityChannels = \$moderation ? \$moderation->getPriorityChannelIds(100) : array();", '', $actions);
-$actions = preg_replace(
-    "/\nif \(SEC_hasRights\('videos\.moderate'\)\) \{\n    \$html \.= '<section class=\\\"videos-admin-section\\\"><h2>Décisions sur les chaînes<\/h2>'.*?\n\}\n\n\$html \.= '<section class=\\\"videos-admin-section\\\"><h2>YouTube Data API<\/h2>'/s",
-    "\n\$html .= '<section class=\"videos-admin-section\"><h2>YouTube Data API</h2>'",
-    $actions,
-    1,
-    $countSection
-);
-if ($countSection !== 1) {
-    throw new RuntimeException('Channel decisions section not removed from actions.php');
-}
+$sectionStart = "if (SEC_hasRights('videos.moderate')) {\n    \$html .= '<section class=\"videos-admin-section\"><h2>Décisions sur les chaînes</h2>';";
+$sectionEnd = "\$html .= '<section class=\"videos-admin-section\"><h2>YouTube Data API</h2>'";
+$actions = remove_between($actions, $sectionStart, $sectionEnd);
 write_text($actionsPath, $actions);
 
-// 3) Small cleanup in moderation.php and signal public structural changes when
-// a moderation decision changes a channel/video exposure.
+// Moderation is the single source for channel decisions. Signal affected
+// public pages whenever an exposure decision changes.
 $moderationPath = $root . '/admin/moderation.php';
 $moderation = read_text($moderationPath);
 $moderation = str_replace("    global \$LANG_VIDEOS;\n    global \$LANG_VIDEOS;\n", "    global \$LANG_VIDEOS;\n", $moderation);
-$needle = <<<'PHP'
+$oldSaved = <<<'PHP'
         if ($saved) {
             $message = $LANG_VIDEOS['moderation_saved'];
             $logger->log(
 PHP;
-$replacement = <<<'PHP'
+$newSaved = <<<'PHP'
         if ($saved) {
             $message = $LANG_VIDEOS['moderation_saved'];
             if ($entity === 'video' && Videos_Validator::youtubeVideoId($id)) {
@@ -171,13 +157,12 @@ $replacement = <<<'PHP'
             }
             $logger->log(
 PHP;
-if (strpos($moderation, $needle) === false) {
+if (strpos($moderation, $oldSaved) === false) {
     throw new RuntimeException('Moderation saved block not found');
 }
-$moderation = str_replace($needle, $replacement, $moderation);
+$moderation = str_replace($oldSaved, $newSaved, $moderation);
 write_text($moderationPath, $moderation);
 
-// Add localized curation feedback.
 foreach (array(
     'english.php' => array(
         'curation_saved' => 'Editorial decision saved.',
