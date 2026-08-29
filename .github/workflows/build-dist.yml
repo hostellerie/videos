@@ -31,12 +31,6 @@ jobs:
           set -euo pipefail
           git pull --ff-only origin "${GITHUB_REF_NAME}"
 
-      - name: Apply IndexNow actions visibility
-        shell: bash
-        run: |
-          set -euo pipefail
-          php tools/fix-indexnow-actions-visibility.php
-
       - name: Lint PHP sources
         shell: bash
         run: |
@@ -50,10 +44,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           ARCHIVE="videos_0.18.0_2.1.1.zip"
           rm -rf build
           mkdir -p build/videos dist
           rm -f dist/videos_*.zip
+
           rsync -a ./ build/videos/ \
             --exclude='.git/' \
             --exclude='.github/' \
@@ -70,23 +66,29 @@ jobs:
             --exclude='*.cache' \
             --exclude='videos_*.tar.gz' \
             --exclude='videos_*.zip'
+
           cd build
           zip -q -r "../dist/${ARCHIVE}" videos
           cd ..
+
           test -s "dist/${ARCHIVE}"
           unzip -t "dist/${ARCHIVE}"
+          unzip -l "dist/${ARCHIVE}" | head -80
 
-      - name: Commit corrected source and archive
+      - name: Commit generated archive
         shell: bash
         run: |
           set -euo pipefail
+
           ARCHIVE="videos_0.18.0_2.1.1.zip"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A admin dist
+          git add -A dist
+
           if git diff --cached --quiet; then
-            echo "Source and archive are already up to date."
+            echo "Archive is already up to date."
             exit 0
           fi
-          git commit -m "Show IndexNow batch tools only when available"
+
+          git commit -m "Build ${ARCHIVE}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
