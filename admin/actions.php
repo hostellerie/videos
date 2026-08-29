@@ -520,6 +520,7 @@ function videos_admin_action_form($action, $videoId, $label, $token)
 function videos_admin_section_nav($configuration, $active)
 {
     global $LANG_VIDEOS;
+    global $LANG_VIDEOS;
     $base = $configuration['site_admin_url'] . '/plugins/videos/';
     $items = array(
         'overview' => array('index.php', $LANG_VIDEOS['admin_nav_overview']),

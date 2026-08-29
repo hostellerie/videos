@@ -250,7 +250,7 @@ if ($isLocalSearch) {
             $_CONF['site_url'] . '/videos/index.php',
             ENT_QUOTES,
             'UTF-8'
-        ) . '">Afficher tout le catalogue</a></div>';
+        ) . '">' . htmlspecialchars($LANG_VIDEOS['catalogue_show_all'], ENT_QUOTES, 'UTF-8') . '</a></div>';
 }
 if ($message !== '') {
     $html .= '<p>' . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</p>';
@@ -471,6 +471,7 @@ function videos_build_public_search_parameters($configuration)
 
 function videos_catalogue_search_form($action, $query)
 {
+    global $LANG_VIDEOS;
     global $LANG_VIDEOS;
     return '<form class="videos-catalogue-search" method="get" action="'
         . htmlspecialchars($action, ENT_QUOTES, 'UTF-8') . '">'

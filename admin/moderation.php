@@ -148,6 +148,7 @@ echo COM_createHTMLDocument(
 function videos_moderation_nav($configuration, $active)
 {
     global $LANG_VIDEOS;
+    global $LANG_VIDEOS;
     $base = $configuration['site_admin_url'] . '/plugins/videos/';
     $items = array(
         'overview' => array('index.php', $LANG_VIDEOS['admin_nav_overview']),
