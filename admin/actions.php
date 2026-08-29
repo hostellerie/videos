@@ -176,11 +176,13 @@ if (empty($records['items'])) {
         $html .= $isPinned
             ? videos_admin_action_form('pool_unpin', $videoId, 'Désépingler', $token)
             : videos_admin_action_form('pool_pin', $videoId, 'Épingler', $token);
-        $html .= videos_admin_action_form('pool_remove', $videoId, 'Retirer du permanent', $token)
-            . videos_admin_action_form('pool_exclude', $videoId, 'Exclure du fonds', $token)
+        $html .= videos_admin_action_form('pool_remove', $videoId, 'Retirer de la sélection', $token)
+            . videos_admin_action_form('pool_exclude', $videoId, 'Exclure des sélections futures', $token)
             . '</td></tr>';
     }
-    $html .= '</tbody></table></div>';
+    $html .= '</tbody></table></div>'
+        . '<p class="videos-admin-help"><strong>Retirer de la sélection</strong> enlève la vidéo du catalogue permanent, mais elle pourra être sélectionnée de nouveau. '
+        . '<strong>Exclure des sélections futures</strong> l’empêche d’être réintégrée tant qu’elle n’est pas réautorisée.</p>';
 }
 if (!empty($records['excluded'])) {
     $html .= '<details class="videos-advanced-field"><summary>Vidéos exclues du fonds ('
@@ -198,11 +200,14 @@ if (SEC_hasRights('videos.maintenance')) {
 }
 $html .= '</section>';
 
+$youtubeApiKeyConfigured = $bootstrap->getYouTubeApiKey() !== '';
 $html .= '<section class="videos-admin-section"><h2>YouTube Data API</h2>'
+    . '<p><strong>État :</strong> ' . ($youtubeApiKeyConfigured ? 'Clé API configurée.' : 'Clé API absente.') . '</p>'
+    . '<p>Une clé YouTube Data API est nécessaire pour rechercher de nouvelles vidéos et récupérer les données d’une vidéo qui n’est pas encore en cache. Les vidéos déjà mises en cache restent consultables sans nouvel appel API.</p>'
     . '<form class="videos-admin-form" method="post"><input type="hidden" name="videos_action" value="save_key">'
     . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
-    . '<label>Nouvelle clé API <input type="password" name="youtube_api_key" maxlength="200" autocomplete="new-password"></label> '
-    . '<button type="submit">Enregistrer la clé</button></form>'
+    . '<label>' . ($youtubeApiKeyConfigured ? 'Remplacer la clé API' : 'Ajouter une clé API') . ' <input type="password" name="youtube_api_key" maxlength="200" autocomplete="new-password"></label> '
+    . '<button type="submit">' . ($youtubeApiKeyConfigured ? 'Remplacer la clé' : 'Enregistrer la clé') . '</button></form>'
     . '<form class="videos-admin-form" method="post"><input type="hidden" name="videos_action" value="test_search">'
     . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
     . '<label>Recherche de test <input type="text" name="test_query" maxlength="250" size="50" required></label> '
