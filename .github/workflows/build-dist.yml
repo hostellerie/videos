@@ -36,6 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           php tools/i18n-modernization.php
+          php tools/i18n-final.php
 
       - name: Lint PHP sources
         shell: bash
@@ -96,5 +97,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Internationalize Videos interface and build ${ARCHIVE}"
+          git commit -m "Finalize Videos interface translations and build ${ARCHIVE}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
