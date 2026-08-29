@@ -7,13 +7,11 @@ if (!isset($_CONF)) {
 function plugin_idtourl_videos($subType, $itemId = '')
 {
     global $_CONF;
-
     if ($itemId === '') {
         $itemId = $subType;
     }
     $itemId = (string) $itemId;
     $base = rtrim($_CONF['site_url'], '/') . '/videos/';
-
     if ($itemId === 'catalogue') {
         return $base . 'index.php';
     }
@@ -28,16 +26,13 @@ function plugin_idtourl_videos($subType, $itemId = '')
         return Videos_Validator::youtubeChannelId($channelId)
             ? $base . 'channel.php?id=' . rawurlencode($channelId) : '';
     }
-    if (!Videos_Validator::youtubeVideoId($itemId)) {
-        return '';
-    }
-    return $base . 'watch.php?v=' . rawurlencode($itemId);
+    return Videos_Validator::youtubeVideoId($itemId)
+        ? $base . 'watch.php?v=' . rawurlencode($itemId) : '';
 }
 
 function plugin_urltoid_videos($url)
 {
     global $_CONF;
-
     $url = trim((string) $url);
     $parts = parse_url($url);
     $site = parse_url($_CONF['site_url']);
@@ -54,21 +49,18 @@ function plugin_urltoid_videos($url)
     if (substr($path, -17) === '/videos/watch.php') {
         $id = isset($query['v']) ? (string) $query['v'] : '';
         return Videos_Validator::youtubeVideoId($id)
-            ? array('type' => 'videos', 'id' => $id, 'subtype' => 'video')
-            : array();
+            ? array('type' => 'videos', 'id' => $id, 'subtype' => 'video') : array();
     }
     if (substr($path, -19) === '/videos/channel.php') {
         $id = isset($query['id']) ? (string) $query['id'] : '';
         return Videos_Validator::youtubeChannelId($id)
-            ? array('type' => 'videos', 'id' => 'channel:' . $id, 'subtype' => 'channel')
-            : array();
+            ? array('type' => 'videos', 'id' => 'channel:' . $id, 'subtype' => 'channel') : array();
     }
     if (substr($path, -17) === '/videos/index.php') {
         return array('type' => 'videos', 'id' => 'catalogue', 'subtype' => 'collection');
     }
     if (substr($path, -20) === '/videos/rankings.php') {
-        $tab = isset($query['tab']) && $query['tab'] === 'channels'
-            ? 'channels' : 'videos';
+        $tab = isset($query['tab']) && $query['tab'] === 'channels' ? 'channels' : 'videos';
         return array('type' => 'videos', 'id' => 'rankings:' . $tab, 'subtype' => 'ranking');
     }
     return array();
@@ -228,11 +220,20 @@ function plugin_getiteminfo_videos($id, $what, $uid = 0, $options = array())
     }
     $poolItems = VIDEOS_publicPoolRecords($bootstrap);
     if ($id !== '*') {
-        $record = isset($poolItems[$id])
-            ? VIDEOS_itemInfoRecord($id, $bootstrap, $poolItems[$id])
-            : VIDEOS_structureInfoRecord($id, $bootstrap);
+        if (Videos_Validator::youtubeVideoId($id)) {
+            $record = VIDEOS_itemInfoRecord(
+                $id,
+                $bootstrap,
+                isset($poolItems[$id]) ? $poolItems[$id] : array()
+            );
+        } else {
+            $record = VIDEOS_structureInfoRecord($id, $bootstrap);
+        }
         return empty($record) ? '' : VIDEOS_filterItemInfo($record, $what);
     }
+
+    // Collections intentionally expose the editorial/persistent corpus to
+    // consumers such as Hello, not every transient discovery-cache entry.
     $since = isset($options['since']) ? $options['since'] : 0;
     if (!is_numeric($since)) {
         $since = strtotime((string) $since);
@@ -310,7 +311,11 @@ function plugin_autotags_videos($op, $content = '', $autotag = '')
         if (!empty($record['image']) && strpos($record['image'], 'https://') === 0) {
             $replacement .= '<img loading="lazy" src="'
                 . htmlspecialchars($record['image'], ENT_QUOTES, 'UTF-8')
-                . '" alt="' . htmlspecialchars(VIDEOS_thumbnailAlt($record['title'], $record['author']), ENT_QUOTES, 'UTF-8') . '">';
+                . '" alt="' . htmlspecialchars(
+                    VIDEOS_thumbnailAlt($record['title'], $record['author']),
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) . '">';
         }
         $replacement .= '<span>' . $safeTitle . '</span></a></article>';
     }
