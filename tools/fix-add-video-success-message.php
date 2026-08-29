@@ -6,12 +6,17 @@ $actions = file_get_contents($actionsPath);
 if ($actions === false) {
     throw new RuntimeException('Cannot read actions.php');
 }
-$actions = str_replace(
-    "$message = $saved\n                        ? 'Vidéo ajoutée au catalogue permanent et signalée aux consommateurs Geeklog.'\n                        : 'Impossible d’ajouter la vidéo au catalogue permanent.';",
-    "$message = $saved\n                        ? 'Vidéo ajoutée au catalogue permanent.'\n                        : 'Impossible d’ajouter la vidéo au catalogue permanent.';",
-    $actions,
-    $countMessage
-);
+$oldMessage = <<<'PHP'
+$message = $saved
+                        ? 'Vidéo ajoutée au catalogue permanent et signalée aux consommateurs Geeklog.'
+                        : 'Impossible d’ajouter la vidéo au catalogue permanent.';
+PHP;
+$newMessage = <<<'PHP'
+$message = $saved
+                        ? 'Vidéo ajoutée au catalogue permanent.'
+                        : 'Impossible d’ajouter la vidéo au catalogue permanent.';
+PHP;
+$actions = str_replace($oldMessage, $newMessage, $actions, $countMessage);
 if ($countMessage !== 1) {
     throw new RuntimeException('Success message not found');
 }
