@@ -78,6 +78,12 @@ function VIDEOS_signalSaved($id)
         PLG_itemSaved($id, 'videos');
     }
 }
+function VIDEOS_signalDeleted($id)
+{
+    if (function_exists('PLG_itemDeleted')) {
+        PLG_itemDeleted($id, 'videos');
+    }
+}
 
 function VIDEOS_interopBootstrap()
 {

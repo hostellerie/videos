@@ -70,7 +70,9 @@ if ($bootstrap->isReady()) {
     if ($activeTab === 'channels' && $channelsEnabled) {
         $candidates = $channelRanking->getGlobal(250);
         foreach ($candidates as $channelId => $item) {
-            if ($moderation->isChannelExcluded($channelId) || isset($blockedChannels[$channelId])) {
+            if ($moderation->isChannelExcluded($channelId) ||
+                isset($blockedChannels[$channelId]) ||
+                !VIDEOS_channelPageEligible($channelId, $bootstrap)) {
                 continue;
             }
             $channelItems[$channelId] = $item;

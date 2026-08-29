@@ -195,14 +195,23 @@ class Videos_YouTubeService
             if (!Videos_Validator::youtubeVideoId($videoId)) {
                 continue;
             }
-            if (!isset($videos[$videoId]) ||
-                !is_array($videos[$videoId])) {
+            $previous = $this->cache->getAvailability($videoId);
+            $wasAvailable = is_array($previous) &&
+                isset($previous['available']) && $previous['available'] === true;
+            $cachedVideo = $this->cache->getVideo($videoId, true);
+            $channelId = is_array($cachedVideo) && !empty($cachedVideo['snippet']['channelId'])
+                ? (string) $cachedVideo['snippet']['channelId'] : '';
+
+            if (!isset($videos[$videoId]) || !is_array($videos[$videoId])) {
                 $this->cache->putAvailability(
                     $videoId,
                     false,
                     'not_found_or_private',
                     $ttl
                 );
+                if ($wasAvailable) {
+                    $this->signalUnavailableTransition($videoId, $channelId);
+                }
                 continue;
             }
             $status = isset($videos[$videoId]['status']) &&
@@ -211,6 +220,7 @@ class Videos_YouTubeService
             $public = isset($status['privacyStatus']) &&
                 $status['privacyStatus'] === 'public';
             $embeddable = !empty($status['embeddable']);
+            $available = $public && $embeddable;
             $reason = 'available';
             if (!$public) {
                 $reason = 'not_public';
@@ -219,10 +229,32 @@ class Videos_YouTubeService
             }
             $this->cache->putAvailability(
                 $videoId,
-                $public && $embeddable,
+                $available,
                 $reason,
                 $ttl
             );
+            if ($wasAvailable && !$available) {
+                if ($channelId === '' && !empty($videos[$videoId]['snippet']['channelId'])) {
+                    $channelId = (string) $videos[$videoId]['snippet']['channelId'];
+                }
+                $this->signalUnavailableTransition($videoId, $channelId);
+            }
+        }
+    }
+
+    private function signalUnavailableTransition($videoId, $channelId)
+    {
+        if (function_exists('VIDEOS_signalDeleted')) {
+            VIDEOS_signalDeleted($videoId);
+        }
+        if (function_exists('VIDEOS_signalSaved')) {
+            VIDEOS_signalSaved('catalogue');
+            VIDEOS_signalSaved('rankings:videos');
+            VIDEOS_signalSaved('rankings:channels');
+            VIDEOS_signalSaved('channels');
+            if (Videos_Validator::youtubeChannelId($channelId)) {
+                VIDEOS_signalSaved('channel:' . $channelId);
+            }
         }
     }
 
