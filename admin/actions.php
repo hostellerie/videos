@@ -12,6 +12,7 @@ if (!SEC_hasRights('videos.admin')) {
 
 $bootstrap = new Videos_Bootstrap($_CONF);
 $message = '';
+$searchResults = array();
 if (!$bootstrap->isReady()) {
     $message = 'Le stockage du plugin Videos est indisponible.';
 }
@@ -36,6 +37,16 @@ if ($store && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = $bootstrap->setYouTubeApiKey($key)
                 ? 'La clé YouTube Data API a été enregistrée.'
                 : 'La clé API est invalide.';
+        } elseif ($action === 'test_search') {
+            $query = isset($_POST['test_query']) ? trim(strip_tags((string) $_POST['test_query'])) : '';
+            if ($query === '' || strlen($query) > 250) {
+                $message = 'La requête de test est invalide.';
+            } else {
+                $searchResults = videos_actions_test_search($bootstrap, $query, $_VIDEOS_CONF);
+                $message = $searchResults === false
+                    ? 'La recherche de test a échoué.'
+                    : count($searchResults['video_ids']) . ' vidéo(s) valide(s) trouvée(s).';
+            }
         } elseif ($action === 'seed_discovery' && SEC_hasRights('videos.maintenance')) {
             $query = isset($_POST['seed_query']) ? trim(strip_tags((string) $_POST['seed_query'])) : '';
             if ($query === '' || strlen($query) > 250) {
@@ -86,13 +97,19 @@ if ($store && $_SERVER['REQUEST_METHOD'] === 'POST') {
                         : 'Impossible d’ajouter la vidéo au catalogue permanent.';
                 }
             }
-        } elseif (in_array($action, array('pool_add', 'pool_pin', 'pool_unpin', 'pool_remove'), true)) {
+        } elseif (in_array(
+            $action,
+            array('pool_add', 'pool_pin', 'pool_unpin', 'pool_remove', 'pool_exclude', 'pool_allow'),
+            true
+        )) {
             $videoId = isset($_POST['video_id']) ? COM_applyFilter($_POST['video_id']) : '';
             $stateMap = array(
                 'pool_add' => 'added',
                 'pool_pin' => 'pinned',
                 'pool_unpin' => 'unpinned',
-                'pool_remove' => 'removed'
+                'pool_remove' => 'removed',
+                'pool_exclude' => 'excluded',
+                'pool_allow' => 'allowed'
             );
             $global = $ranking->getGlobal(500);
             $rankingItem = isset($global[$videoId]) ? $global[$videoId] : array();
@@ -146,7 +163,7 @@ if ($store && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $token = SEC_createToken();
-$records = $pool ? $pool->records() : array('items' => array());
+$records = $pool ? $pool->records() : array('items' => array(), 'excluded' => array());
 $priorityChannels = $moderation ? $moderation->getPriorityChannelIds(100) : array();
 
 $html = '<div class="videos-admin"><h1>Videos — Actions</h1>'
@@ -180,9 +197,19 @@ if (empty($records['items'])) {
             ? videos_admin_action_form('pool_unpin', $videoId, 'Désépingler', $token)
             : videos_admin_action_form('pool_pin', $videoId, 'Épingler', $token);
         $html .= videos_admin_action_form('pool_remove', $videoId, 'Retirer du permanent', $token)
+            . videos_admin_action_form('pool_exclude', $videoId, 'Exclure du fonds', $token)
             . '</td></tr>';
     }
     $html .= '</tbody></table></div>';
+}
+if (!empty($records['excluded'])) {
+    $html .= '<details class="videos-advanced-field"><summary>Vidéos exclues du fonds ('
+        . count($records['excluded']) . ')</summary><ul>';
+    foreach ($records['excluded'] as $videoId => $excludedAt) {
+        $html .= '<li><code>' . htmlspecialchars($videoId, ENT_QUOTES, 'UTF-8') . '</code> '
+            . videos_admin_action_form('pool_allow', $videoId, 'Réautoriser', $token) . '</li>';
+    }
+    $html .= '</ul></details>';
 }
 if (SEC_hasRights('videos.maintenance')) {
     $html .= '<form class="videos-admin-form" method="post"><input type="hidden" name="videos_action" value="pool_rebuild">'
@@ -220,7 +247,21 @@ $html .= '<section class="videos-admin-section"><h2>YouTube Data API</h2>'
     . '<form class="videos-admin-form" method="post"><input type="hidden" name="videos_action" value="save_key">'
     . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
     . '<label>Nouvelle clé API <input type="password" name="youtube_api_key" maxlength="200" autocomplete="new-password"></label> '
-    . '<button type="submit">Enregistrer la clé</button></form>';
+    . '<button type="submit">Enregistrer la clé</button></form>'
+    . '<form class="videos-admin-form" method="post"><input type="hidden" name="videos_action" value="test_search">'
+    . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
+    . '<label>Recherche de test <input type="text" name="test_query" maxlength="250" size="50" required></label> '
+    . '<button type="submit">Tester la recherche</button></form>';
+if (is_array($searchResults) && !empty($searchResults['videos'])) {
+    $html .= '<div class="videos-grid videos-admin-results">';
+    foreach ($searchResults['videos'] as $videoId => $video) {
+        $title = isset($video['snippet']['title']) ? $video['snippet']['title'] : $videoId;
+        $html .= '<article class="videos-admin-result"><strong>'
+            . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</strong><br><code>'
+            . htmlspecialchars($videoId, ENT_QUOTES, 'UTF-8') . '</code></article>';
+    }
+    $html .= '</div>';
+}
 if (SEC_hasRights('videos.maintenance')) {
     $html .= '<form class="videos-admin-form" method="post"><input type="hidden" name="videos_action" value="seed_discovery">'
         . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
@@ -249,6 +290,21 @@ $html .= '<section class="videos-admin-section"><h2>Indexation des pages existan
     . '<button type="submit">Envoyer les pages existantes à IndexNow</button></form></section></div>';
 
 echo COM_createHTMLDocument($html, array('pagetitle' => 'Videos — Actions', 'headercode' => VIDEOS_adminHeaderCode()));
+
+function videos_actions_test_search($bootstrap, $query, $configuration)
+{
+    $store = $bootstrap->getStore();
+    $service = new Videos_YouTubeService(
+        new Videos_YouTubeClient(
+            $bootstrap->getYouTubeApiKey(),
+            isset($configuration['youtube_timeout']) ? $configuration['youtube_timeout'] : 8
+        ),
+        new Videos_Cache($store),
+        new Videos_Quota($store),
+        new Videos_Logger($store)
+    );
+    return $service->find($query, videos_actions_search_parameters($configuration));
+}
 
 function videos_actions_seed_discovery($bootstrap, $query, $configuration)
 {
