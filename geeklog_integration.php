@@ -191,7 +191,8 @@ function plugin_showstats_videos($showSiteStats = 2)
 
 /**
  * Determine whether a local public channel page is intended to be exposed.
- * The definitive page still rechecks availability and moderation itself.
+ * A priority channel, a channel owning at least one pinned video, or a channel
+ * with at least two ranked videos has sufficient editorial value.
  */
 function VIDEOS_channelPageEligible($channelId, $bootstrap = null)
 {
@@ -206,16 +207,38 @@ function VIDEOS_channelPageEligible($channelId, $bootstrap = null)
     if (!is_object($bootstrap) || !$bootstrap->isReady()) {
         return false;
     }
+
     $store = $bootstrap->getStore();
     $cache = new Videos_Cache($store);
     $moderation = new Videos_Moderation($store);
     if ($moderation->isChannelExcluded($channelId)) {
         return false;
     }
+
     $state = $moderation->getChannelState($channelId);
     if (isset($state['state']) && $state['state'] === 'priority') {
         return true;
     }
+
+    $pool = new Videos_PermanentPool($store, $cache);
+    $records = $pool->records();
+    $items = isset($records['items']) && is_array($records['items'])
+        ? $records['items'] : array();
+    foreach ($items as $videoId => $item) {
+        if (empty($item['pinned'])) {
+            continue;
+        }
+        $video = $cache->getVideo($videoId, true);
+        if (!is_array($video) || empty($video['snippet']['channelId'])) {
+            continue;
+        }
+        if ((string) $video['snippet']['channelId'] === $channelId &&
+            !$cache->isVideoUnavailable($videoId) &&
+            !$moderation->isVideoBlocked($videoId)) {
+            return true;
+        }
+    }
+
     $channels = (new Videos_ChannelRanking($store, $cache))->getGlobal(250);
     return isset($channels[$channelId]['video_count']) &&
         (int) $channels[$channelId]['video_count'] >= 2;
