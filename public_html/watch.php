@@ -164,19 +164,31 @@ $html .= '</fieldset><button type="button" class="videos-rating-delete" data-del
 if (!empty($_VIDEOS_CONF['sharing_enabled'])) {
     $encodedUrl = rawurlencode($localUrl);
     $encodedTitle = rawurlencode($title);
-    $html .= '<nav class="videos-share" aria-label="Partager" data-url="'
-        . htmlspecialchars($localUrl, ENT_QUOTES, 'UTF-8') . '" data-title="'
-        . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '" data-copied="'
-        . htmlspecialchars($LANG_VIDEOS['link_copied'], ENT_QUOTES, 'UTF-8') . '">'
-        . '<a class="videos-share-link" rel="nofollow noopener" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=' . $encodedUrl . '">Facebook</a> '
-        . '<a class="videos-share-link" rel="nofollow noopener" target="_blank" href="https://twitter.com/intent/tweet?url=' . $encodedUrl . '&text=' . $encodedTitle . '">X</a> '
-        . '<a class="videos-share-link" rel="nofollow noopener" target="_blank" href="https://www.linkedin.com/sharing/share-offsite/?url=' . $encodedUrl . '">LinkedIn</a> '
-        . '<a class="videos-share-link" rel="nofollow noopener" target="_blank" href="https://wa.me/?text=' . $encodedTitle . '%20' . $encodedUrl . '">WhatsApp</a> '
-        . '<a class="videos-share-link" rel="nofollow noopener" target="_blank" href="https://t.me/share/url?url=' . $encodedUrl . '&text=' . $encodedTitle . '">Telegram</a> '
-        . '<a class="videos-share-link" href="mailto:?subject=' . $encodedTitle . '&body=' . $encodedUrl . '">E-mail</a>'
-        . '<button type="button" class="videos-copy-link">' . htmlspecialchars($LANG_VIDEOS['copy_link'], ENT_QUOTES, 'UTF-8') . '</button>'
-        . '<button type="button" class="videos-native-share">' . htmlspecialchars($LANG_VIDEOS['native_share'], ENT_QUOTES, 'UTF-8') . '</button>'
-        . '<span class="videos-share-status" aria-live="polite"></span></nav>';
+    $html .= '<nav class="videos-share" aria-label="Partager" '
+        . 'data-url="' . htmlspecialchars($localUrl, ENT_QUOTES, 'UTF-8') . '" '
+        . 'data-title="' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '" '
+        . 'data-copied="' . htmlspecialchars($LANG_VIDEOS['link_copied'], ENT_QUOTES, 'UTF-8') . '">'
+        . '<a class="videos-share-link" rel="nofollow noopener" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u='
+        . $encodedUrl . '"><span class="videos-share-icon is-facebook" aria-hidden="true">f</span>Facebook</a> '
+        . '<a class="videos-share-link" rel="nofollow noopener" target="_blank" href="https://twitter.com/intent/tweet?url='
+        . $encodedUrl . '&text=' . $encodedTitle . '"><span class="videos-share-icon is-x" aria-hidden="true">X</span>X</a> '
+        . '<a class="videos-share-link" rel="nofollow noopener" target="_blank" href="https://www.linkedin.com/sharing/share-offsite/?url='
+        . $encodedUrl . '"><span class="videos-share-icon is-linkedin" aria-hidden="true">in</span>LinkedIn</a> '
+        . '<a class="videos-share-link" rel="nofollow noopener" target="_blank" href="https://wa.me/?text='
+        . $encodedTitle . '%20' . $encodedUrl . '"><span class="videos-share-icon is-whatsapp" aria-hidden="true">W</span>WhatsApp</a> '
+        . '<a class="videos-share-link" rel="nofollow noopener" target="_blank" href="https://t.me/share/url?url='
+        . $encodedUrl . '&text=' . $encodedTitle . '"><span class="videos-share-icon is-telegram" aria-hidden="true">T</span>Telegram</a> '
+        . '<a class="videos-share-link" href="mailto:?subject='
+        . $encodedTitle . '&body=' . $encodedUrl
+        . '"><span class="videos-share-icon is-email" aria-hidden="true">@</span>E-mail</a>'
+        . '<button type="button" class="videos-copy-link">'
+        . '<span class="videos-share-icon is-copy" aria-hidden="true">&#128279;</span>'
+        . htmlspecialchars($LANG_VIDEOS['copy_link'], ENT_QUOTES, 'UTF-8')
+        . '</button><button type="button" class="videos-native-share">'
+        . '<span class="videos-share-icon is-native" aria-hidden="true">&#8599;</span>'
+        . htmlspecialchars($LANG_VIDEOS['native_share'], ENT_QUOTES, 'UTF-8')
+        . '</button><span class="videos-share-status" aria-live="polite"></span>'
+        . '</nav>';
 }
 
 if (count($nextVideos) > 0) {
