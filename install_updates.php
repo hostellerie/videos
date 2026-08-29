@@ -238,8 +238,18 @@ $GLOBALS['VIDEOS_UPDATES'] = array(
     '0.17.0' => array(
         'next' => '0.17.1',
         'callback' => 'videos_update_0_17_0_to_0_17_1'
+    ),
+    '0.17.1' => array(
+        'next' => '0.18.0',
+        'callback' => 'videos_update_0_17_1_to_0_18_0'
     )
 );
+
+function videos_update_0_17_1_to_0_18_0()
+{
+    // 0.18.0 adds PHP code and JSON fields only; no SQL/config migration.
+    return true;
+}
 
 function videos_update_0_17_0_to_0_17_1()
 {
