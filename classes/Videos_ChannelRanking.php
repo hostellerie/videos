@@ -20,6 +20,8 @@ class Videos_ChannelRanking
         if (!is_array($videoItems)) {
             return false;
         }
+        $before = $this->getGlobal(50);
+        $beforeSignature = $this->rankingSignature($before);
         $channels = array();
         foreach ($videoItems as $item) {
             $channelId = isset($item['channel_id'])
@@ -32,9 +34,7 @@ class Videos_ChannelRanking
             }
             $channel = $channels[$channelId];
             if ($channel['title'] === '' && !empty($item['channel_title'])) {
-                $channel['title'] = $this->cleanTitle(
-                    $item['channel_title']
-                );
+                $channel['title'] = $this->cleanTitle($item['channel_title']);
             }
             $ratings = isset($item['rating_count'])
                 ? max(0, (int) $item['rating_count']) : 0;
@@ -48,8 +48,7 @@ class Videos_ChannelRanking
             $channel['rating_count'] += $ratings;
             $channel['rating_sum'] += $average * $ratings;
             $channel['view_count'] += $views;
-            $channel['watch_ratio_weighted_sum'] +=
-                $watchRatio * max(1, $views);
+            $channel['watch_ratio_weighted_sum'] += $watchRatio * max(1, $views);
             $channel['watch_ratio_weight'] += max(1, $views);
             if ($ratings > 0 && $average >= 4) {
                 $channel['appreciated_video_count']++;
@@ -59,10 +58,7 @@ class Videos_ChannelRanking
             }
             $candidateDate = isset($item['last_viewed_at'])
                 ? $item['last_viewed_at'] : null;
-            if ($this->isMoreRecent(
-                $candidateDate,
-                $channel['last_activity_at']
-            )) {
+            if ($this->isMoreRecent($candidateDate, $channel['last_activity_at'])) {
                 $channel['last_activity_at'] = $candidateDate;
             }
             $channels[$channelId] = $channel;
@@ -82,11 +78,19 @@ class Videos_ChannelRanking
                 'items' => $items
             )
         );
-        return $this->store->write(
+        $written = $this->store->write(
             'rankings/channels.json',
             'videos.channel_ranking',
             $document
-        ) ? count($items) : false;
+        );
+        if (!$written) {
+            return false;
+        }
+        if ($beforeSignature !== $this->rankingSignature(array_slice($items, 0, 50, true)) &&
+            function_exists('VIDEOS_signalSaved')) {
+            VIDEOS_signalSaved('rankings:channels');
+        }
+        return count($items);
     }
 
     public function getGlobal($limit)
@@ -116,6 +120,14 @@ class Videos_ChannelRanking
         return $leftScore > $rightScore ? -1 : 1;
     }
 
+    private function rankingSignature($items)
+    {
+        if (!is_array($items)) {
+            return '';
+        }
+        return hash('sha256', implode('|', array_keys($items)));
+    }
+
     private function calculate($aggregate)
     {
         $ratingCount = $aggregate['rating_count'];
@@ -124,8 +136,7 @@ class Videos_ChannelRanking
         $weightedRating = ($aggregate['rating_sum'] + (10 * 3.5))
             / ($ratingCount + 10);
         $watchRatio = $aggregate['watch_ratio_weight'] > 0
-            ? $aggregate['watch_ratio_weighted_sum']
-                / $aggregate['watch_ratio_weight']
+            ? $aggregate['watch_ratio_weighted_sum'] / $aggregate['watch_ratio_weight']
             : 0;
         $score = ($weightedRating * 12)
             + min(12, log($ratingCount + 1) * 3)
@@ -144,10 +155,8 @@ class Videos_ChannelRanking
             'video_count' => $aggregate['video_count'],
             'view_count' => $aggregate['view_count'],
             'watch_ratio_average' => round($watchRatio, 4),
-            'appreciated_video_count' =>
-                $aggregate['appreciated_video_count'],
-            'high_ranked_video_count' =>
-                $aggregate['high_ranked_video_count'],
+            'appreciated_video_count' => $aggregate['appreciated_video_count'],
+            'high_ranked_video_count' => $aggregate['high_ranked_video_count'],
             'last_activity_at' => $aggregate['last_activity_at'],
             'calculated_at' => gmdate('Y-m-d\TH:i:s\Z')
         );
