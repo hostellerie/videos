@@ -88,25 +88,26 @@ if ($store && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
                 if ($saved && function_exists('VIDEOS_signalSaved')) {
                     VIDEOS_signalSaved('rankings:channels');
-                    if ($state === 'priority' || $state === 'allowed') {
-                        VIDEOS_signalSaved('channel:' . $channelId);
-                        VIDEOS_signalSaved('catalogue');
-                    }
+                    VIDEOS_signalSaved('catalogue');
+                    VIDEOS_signalSaved('channel:' . $channelId);
                 }
                 $message = $saved ? 'Décision sur la chaîne enregistrée.' : 'Impossible de modifier la chaîne.';
             }
         } elseif ($action === 'signal_public_pages') {
             if (function_exists('VIDEOS_signalSaved')) {
-                VIDEOS_signalSaved('catalogue');
-                VIDEOS_signalSaved('rankings:videos');
-                VIDEOS_signalSaved('rankings:channels');
-                $records = $pool->records();
-                if (!empty($records['items'])) {
-                    foreach ($records['items'] as $videoId => $item) {
-                        VIDEOS_signalSaved($videoId);
-                    }
+                $signalIds = videos_admin_public_signal_ids(
+                    $store,
+                    $cache,
+                    $pool,
+                    $moderation,
+                    $ranking,
+                    $_VIDEOS_CONF
+                );
+                foreach ($signalIds as $signalId) {
+                    VIDEOS_signalSaved($signalId);
                 }
-                $message = 'Les pages structurelles et le catalogue permanent ont été signalés.';
+                $message = count($signalIds)
+                    . ' ressource(s) publique(s) ont été signalée(s) aux consommateurs Geeklog.';
             }
         }
     }
@@ -181,12 +182,81 @@ if (SEC_hasRights('videos.moderate')) {
 }
 
 $html .= '<section class="videos-admin-section"><h2>Indexation des pages existantes</h2>'
-    . '<p>Cette action réémet les événements Geeklog pour le catalogue, les deux classements et toutes les vidéos du catalogue permanent. IndexNow peut alors résoudre et dédupliquer les URLs.</p>'
+    . '<p>Cette action réémet les événements Geeklog pour le catalogue, les classements, les vidéos actives du réservoir, les vidéos du classement global, le catalogue permanent et les pages de chaînes éligibles. IndexNow peut ensuite résoudre et dédupliquer les URLs.</p>'
     . '<form method="post"><input type="hidden" name="videos_action" value="signal_public_pages">'
     . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
     . '<button type="submit">Signaler les pages existantes</button></form></section></div>';
 
 echo COM_createHTMLDocument($html, array('pagetitle' => 'Videos — Actions', 'headercode' => VIDEOS_adminHeaderCode()));
+
+function videos_admin_public_signal_ids($store, $cache, $pool, $moderation, $ranking, $configuration)
+{
+    $ids = array(
+        'catalogue' => true,
+        'rankings:videos' => true,
+        'rankings:channels' => true
+    );
+
+    $reservoir = new Videos_DiscoveryReservoir($store, $cache);
+    $reservoirVideos = $reservoir->videos($configuration);
+    if (is_array($reservoirVideos)) {
+        foreach ($reservoirVideos as $videoId => $video) {
+            if (videos_admin_video_is_public($videoId, $video, $cache, $moderation, $configuration)) {
+                $ids[$videoId] = true;
+            }
+        }
+    }
+
+    $global = $ranking->getGlobal(500);
+    foreach ($global as $videoId => $item) {
+        $video = $cache->getVideo($videoId, true);
+        if (videos_admin_video_is_public($videoId, $video, $cache, $moderation, $configuration)) {
+            $ids[$videoId] = true;
+        }
+    }
+
+    $records = $pool->records();
+    foreach (isset($records['items']) ? $records['items'] : array() as $videoId => $item) {
+        $video = $cache->getVideo($videoId, true);
+        if (videos_admin_video_is_public($videoId, $video, $cache, $moderation, $configuration)) {
+            $ids[$videoId] = true;
+        }
+    }
+
+    $channelRanking = (new Videos_ChannelRanking($store, $cache))->getGlobal(250);
+    foreach ($channelRanking as $channelId => $item) {
+        if (!Videos_Validator::youtubeChannelId($channelId) ||
+            $moderation->isChannelExcluded($channelId)) {
+            continue;
+        }
+        if (isset($item['video_count']) && (int) $item['video_count'] >= 2) {
+            $ids['channel:' . $channelId] = true;
+        }
+    }
+    foreach ($moderation->getPriorityChannelIds(500) as $channelId) {
+        if (Videos_Validator::youtubeChannelId($channelId) &&
+            !$moderation->isChannelExcluded($channelId)) {
+            $ids['channel:' . $channelId] = true;
+        }
+    }
+
+    return array_keys($ids);
+}
+
+function videos_admin_video_is_public($videoId, $video, $cache, $moderation, $configuration)
+{
+    if (!Videos_Validator::youtubeVideoId($videoId) || !is_array($video) ||
+        $cache->isVideoUnavailable($videoId) || $moderation->isVideoBlocked($videoId)) {
+        return false;
+    }
+    $channelId = isset($video['snippet']['channelId'])
+        ? (string) $video['snippet']['channelId'] : '';
+    if ($moderation->isChannelExcluded($channelId) ||
+        Videos_VideoPolicy::excludesShortVideo($video, $configuration)) {
+        return false;
+    }
+    return true;
+}
 
 function videos_admin_extract_video_id($input)
 {
@@ -237,7 +307,8 @@ function videos_admin_fetch_single_video($bootstrap, $cache, $videoId, $configur
     }
     $video = $videos[$videoId];
     $status = isset($video['status']) ? $video['status'] : array();
-    if (empty($status['embeddable']) || !isset($status['privacyStatus']) || $status['privacyStatus'] !== 'public' ||
+    if (empty($status['embeddable']) || !isset($status['privacyStatus']) ||
+        $status['privacyStatus'] !== 'public' ||
         Videos_VideoPolicy::excludesShortVideo($video, $configuration)) {
         return false;
     }
@@ -248,12 +319,24 @@ function videos_admin_fetch_single_video($bootstrap, $cache, $videoId, $configur
     if (!$cache->putVideo($videoId, $video, $ttl, 31536000)) {
         return false;
     }
-    $cache->putAvailability($videoId, true, 'available', isset($configuration['availability_cache_ttl']) ? (int) $configuration['availability_cache_ttl'] : 86400);
+    $cache->putAvailability(
+        $videoId,
+        true,
+        'available',
+        isset($configuration['availability_cache_ttl'])
+            ? (int) $configuration['availability_cache_ttl'] : 86400
+    );
     $channelId = isset($video['snippet']['channelId']) ? $video['snippet']['channelId'] : '';
     if (Videos_Validator::youtubeChannelId($channelId) && $quota->reserve('channels', 500)) {
         $channels = $client->channels(array($channelId));
         if (is_array($channels) && isset($channels[$channelId])) {
-            $cache->putChannel($channelId, $channels[$channelId], isset($configuration['channel_cache_ttl']) ? (int) $configuration['channel_cache_ttl'] : 604800, 5184000);
+            $cache->putChannel(
+                $channelId,
+                $channels[$channelId],
+                isset($configuration['channel_cache_ttl'])
+                    ? (int) $configuration['channel_cache_ttl'] : 604800,
+                5184000
+            );
         }
     }
     $quota->recordSuccess();
@@ -283,7 +366,12 @@ function videos_admin_action_form($action, $videoId, $label, $token)
 function videos_admin_section_nav($configuration, $active)
 {
     $base = $configuration['site_admin_url'] . '/plugins/videos/';
-    $items = array('overview' => array('index.php', 'Vue générale'), 'actions' => array('actions.php', 'Actions'), 'stats' => array('stats.php', 'Statistiques'), 'moderation' => array('moderation.php', 'Modération'));
+    $items = array(
+        'overview' => array('index.php', 'Vue générale'),
+        'actions' => array('actions.php', 'Actions'),
+        'stats' => array('stats.php', 'Statistiques'),
+        'moderation' => array('moderation.php', 'Modération')
+    );
     $html = '<nav class="videos-navigation" aria-label="Administration Videos"><ul>';
     foreach ($items as $key => $item) {
         $html .= '<li><a href="' . htmlspecialchars($base . $item[0], ENT_QUOTES, 'UTF-8') . '"'
