@@ -1,0 +1,79 @@
+name: Build installable Videos archive
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 0.18.0
+    paths-ignore:
+      - 'dist/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: videos-dist-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-dist:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build installable ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ARCHIVE="videos_0.1.8_2.2.2.zip"
+          rm -rf build
+          mkdir -p build/videos dist
+          rm -f "dist/${ARCHIVE}"
+
+          rsync -a ./ build/videos/ \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='dist/' \
+            --exclude='build/' \
+            --exclude='.agents/' \
+            --exclude='.codex/' \
+            --exclude='.idea/' \
+            --exclude='.vscode/' \
+            --exclude='.env' \
+            --exclude='.env.*' \
+            --exclude='*.log' \
+            --exclude='*.tmp' \
+            --exclude='*.cache' \
+            --exclude='videos_*.tar.gz' \
+            --exclude='videos_*.zip'
+
+          cd build
+          zip -q -r "../dist/${ARCHIVE}" videos
+          cd ..
+
+          test -s "dist/${ARCHIVE}"
+          unzip -t "dist/${ARCHIVE}"
+          unzip -l "dist/${ARCHIVE}" | head -80
+
+      - name: Commit generated archive
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ARCHIVE="videos_0.1.8_2.2.2.zip"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f "dist/${ARCHIVE}"
+
+          if git diff --cached --quiet; then
+            echo "Archive is already up to date."
+            exit 0
+          fi
+
+          git commit -m "Build ${ARCHIVE}"
+          git push
