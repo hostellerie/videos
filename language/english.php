@@ -351,6 +351,7 @@ $LANG_VIDEOS_ADMIN_TEXT = array (
   'Vider le cache' => 'Clear cache',
   'Outils de réparation' => 'Repair tools',
   'Indexation des pages existantes' => 'Index existing pages',
+  'Le rattrapage inventorie les pages publiques et les envoie à IndexNow en mode batch.' => 'The catch-up inventories public pages and sends them to IndexNow in batch mode.',
   'Le rattrapage inventorie les pages publiques puis utilise le mode batch d’IndexNow. Il ne génère pas de faux événements de création pour Hello ou les autres plugins.' => 'The catch-up inventories public pages and then uses IndexNow batch mode. It does not generate fake creation events for Hello or other plugins.',
   'Envoyer les pages existantes à IndexNow' => 'Send existing pages to IndexNow',
   'Videos — Statistiques' => 'Videos — Statistics',
