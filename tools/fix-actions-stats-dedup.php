@@ -41,16 +41,24 @@ write_file_or_fail($actionsPath, $actions);
 
 $statsPath = $root . '/admin/stats.php';
 $stats = read_file_or_fail($statsPath);
-$start = strpos($stats, '$html .= \'<section class="videos-admin-section"><h2>Pages publiques adressables</h2><ul>\'');
+$startMarker = <<<'PHP'
+$html .= '<section class="videos-admin-section"><h2>Pages publiques adressables</h2><ul>'
+PHP;
+$start = strpos($stats, $startMarker);
 if ($start === false) {
     throw new RuntimeException('Public pages section not found');
 }
-$endMarker = "$html = VIDEOS_localizeAdminText($html);";
+$endMarker = <<<'PHP'
+$html = VIDEOS_localizeAdminText($html);
+PHP;
 $end = strpos($stats, $endMarker, $start);
 if ($end === false) {
     throw new RuntimeException('Stats localization marker not found');
 }
-$replacement = "$html .= '</div>';\n\n";
+$replacement = <<<'PHP'
+$html .= '</div>';
+
+PHP;
 $stats = substr($stats, 0, $start) . $replacement . substr($stats, $end);
 write_file_or_fail($statsPath, $stats);
 
