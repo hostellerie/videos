@@ -584,7 +584,7 @@ function VIDEOS_renderNavigation($active)
     if (!empty($_VIDEOS_CONF['public_rankings_enabled'])) {
         $items['rankings'] = array('label' => $LANG_VIDEOS['rankings'], 'url' => $_CONF['site_url'] . '/videos/rankings.php');
     }
-    if (!COM_isAnonUser() && SEC_hasRights('videos.personal_history') && !empty($_VIDEOS_CONF['account_history_enabled'])) {
+    if (!COM_isAnonUser() && !empty($_VIDEOS_CONF['account_history_enabled'])) {
         $items['history'] = array('label' => $LANG_VIDEOS['my_videos'], 'url' => $_CONF['site_url'] . '/videos/history.php');
     }
     $html = '<nav class="videos-navigation" aria-label="'

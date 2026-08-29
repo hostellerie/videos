@@ -91,11 +91,26 @@ $curationMessage = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
     SEC_hasRights('videos.moderate') &&
     isset($_POST['videos_curation_action'])) {
-    if (!SEC_checkToken()) {
+    $curationAction = COM_applyFilter($_POST['videos_curation_action']);
+    $curationExpires = isset($_POST['videos_curation_expires'])
+        ? (int) $_POST['videos_curation_expires'] : 0;
+    $curationProof = isset($_POST['videos_curation_proof'])
+        ? (string) $_POST['videos_curation_proof'] : '';
+    $expectedProof = videos_watch_curation_proof(
+        $videoId,
+        $curationAction,
+        $curationExpires,
+        $uid,
+        $bootstrap->getSecret()
+    );
+    $proofValid = $curationExpires >= time()
+        && $curationExpires <= time() + 1800
+        && $curationProof !== ''
+        && hash_equals($expectedProof, $curationProof);
+    if (!$proofValid) {
         $curationMessage = isset($LANG_VIDEOS['history_csrf'])
             ? $LANG_VIDEOS['history_csrf'] : 'The security token has expired.';
     } else {
-        $curationAction = COM_applyFilter($_POST['videos_curation_action']);
         $stateMap = array(
             'pool_add' => 'added',
             'pool_pin' => 'pinned',
@@ -118,7 +133,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
     }
 }
 $csrfToken = SEC_createToken();
-$curationToken = SEC_createToken();
 $isPermanent = $permanentPool->contains($videoId);
 $isPinned = $permanentPool->isPinned($videoId);
 
@@ -147,13 +161,13 @@ if (SEC_hasRights('videos.moderate')) {
     $curationUrl = $localUrl;
     $html .= '<aside class="videos-moderation-actions" aria-label="Actions éditoriales"><strong>Actions éditoriales</strong><div>';
     if (!$isPermanent) {
-        $html .= videos_watch_curation_form($curationUrl, 'pool_add', $videoId, 'Ajouter au catalogue permanent', $curationToken);
+        $html .= videos_watch_curation_form($curationUrl, 'pool_add', $videoId, 'Ajouter au catalogue permanent', $bootstrap->getSecret(), $uid);
     } elseif (!$isPinned) {
-        $html .= videos_watch_curation_form($curationUrl, 'pool_pin', $videoId, 'Épingler', $curationToken)
-            . videos_watch_curation_form($curationUrl, 'pool_remove', $videoId, 'Retirer du permanent', $curationToken);
+        $html .= videos_watch_curation_form($curationUrl, 'pool_pin', $videoId, 'Épingler', $bootstrap->getSecret(), $uid)
+            . videos_watch_curation_form($curationUrl, 'pool_remove', $videoId, 'Retirer du permanent', $bootstrap->getSecret(), $uid);
     } else {
-        $html .= videos_watch_curation_form($curationUrl, 'pool_unpin', $videoId, 'Désépingler', $curationToken)
-            . videos_watch_curation_form($curationUrl, 'pool_remove', $videoId, 'Retirer du permanent', $curationToken);
+        $html .= videos_watch_curation_form($curationUrl, 'pool_unpin', $videoId, 'Désépingler', $bootstrap->getSecret(), $uid)
+            . videos_watch_curation_form($curationUrl, 'pool_remove', $videoId, 'Retirer du permanent', $bootstrap->getSecret(), $uid);
     }
     $html .= '<a href="' . htmlspecialchars($quickModerationUrl . '&entity=video&entity_id=' . rawurlencode($videoId), ENT_QUOTES, 'UTF-8') . '">'
         . htmlspecialchars($LANG_VIDEOS['moderation_block_video'], ENT_QUOTES, 'UTF-8') . '</a>';
@@ -280,12 +294,25 @@ $html .= '<script src="https://www.youtube.com/iframe_api"></script>'
 
 echo COM_createHTMLDocument($html, array('pagetitle' => $title, 'headercode' => $seoHeader));
 
-function videos_watch_curation_form($actionUrl, $action, $videoId, $label, $token)
+function videos_watch_curation_proof($videoId, $action, $expires, $uid, $secret)
 {
+    return hash_hmac(
+        'sha256',
+        'curation:' . (int) $uid . ':' . (string) $videoId . ':'
+            . (string) $action . ':' . (int) $expires,
+        (string) $secret
+    );
+}
+
+function videos_watch_curation_form($actionUrl, $action, $videoId, $label, $secret, $uid)
+{
+    $expires = time() + 900;
+    $proof = videos_watch_curation_proof($videoId, $action, $expires, $uid, $secret);
     return '<form class="videos-inline-form" method="post" action="'
         . htmlspecialchars($actionUrl, ENT_QUOTES, 'UTF-8') . '">'
         . '<input type="hidden" name="videos_curation_action" value="' . htmlspecialchars($action, ENT_QUOTES, 'UTF-8') . '">'
         . '<input type="hidden" name="video_id" value="' . htmlspecialchars($videoId, ENT_QUOTES, 'UTF-8') . '">'
-        . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
+        . '<input type="hidden" name="videos_curation_expires" value="' . (int) $expires . '">'
+        . '<input type="hidden" name="videos_curation_proof" value="' . htmlspecialchars($proof, ENT_QUOTES, 'UTF-8') . '">'
         . '<button type="submit">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</button></form>';
 }
