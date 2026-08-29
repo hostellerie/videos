@@ -578,7 +578,8 @@ function VIDEOS_renderNavigation($active)
 {
     global $_CONF, $LANG_VIDEOS, $_VIDEOS_CONF;
     $items = array(
-        'catalogue' => array('label' => $LANG_VIDEOS['catalogue'], 'url' => $_CONF['site_url'] . '/videos/index.php')
+        'catalogue' => array('label' => $LANG_VIDEOS['catalogue'], 'url' => $_CONF['site_url'] . '/videos/index.php'),
+        'channels' => array('label' => $LANG_VIDEOS['channels'], 'url' => $_CONF['site_url'] . '/videos/channels.php')
     );
     if (!empty($_VIDEOS_CONF['public_rankings_enabled'])) {
         $items['rankings'] = array('label' => $LANG_VIDEOS['rankings'], 'url' => $_CONF['site_url'] . '/videos/rankings.php');

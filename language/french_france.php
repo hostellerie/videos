@@ -238,6 +238,15 @@ $LANG_VIDEOS['channel_view_youtube'] = 'Voir la chaîne sur YouTube';
 $LANG_VIDEOS['channel_featured_videos'] = 'Vidéos remarquables';
 $LANG_VIDEOS['channel_pinned_badge'] = 'Épinglée';
 
+// 0.18.0 public channels directory
+$LANG_VIDEOS['channels'] = 'Chaînes';
+$LANG_VIDEOS['channels_title'] = 'Chaînes vidéo recommandées';
+$LANG_VIDEOS['channels_intro'] = 'Découvrez les chaînes retenues pour leur intérêt éditorial et leurs vidéos remarquables.';
+$LANG_VIDEOS['channels_meta_description'] = 'Découvrez les chaînes vidéo recommandées et leurs vidéos remarquables sélectionnées sur ce site.';
+$LANG_VIDEOS['channels_empty'] = 'Aucune chaîne recommandée n’est encore disponible.';
+$LANG_VIDEOS['channels_unavailable'] = 'L’annuaire des chaînes est temporairement indisponible.';
+$LANG_VIDEOS['channels_view_channel'] = 'Voir les vidéos de cette chaîne';
+
 $LANG_VIDEOS_FAQ = array(
     'catalogue_selection_q' => 'Comment les vidéos du catalogue sont-elles sélectionnées ?',
     'catalogue_selection_a' => 'Le plugin combine la thématique du site, les réglages administratifs, la disponibilité sur YouTube et les recommandations locales. Les vidéos bloquées, privées ou non intégrables sont exclues.',

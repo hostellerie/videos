@@ -164,6 +164,7 @@ class Videos_Moderation
         VIDEOS_signalSaved('channel:' . $channelId);
         VIDEOS_signalSaved('catalogue');
         VIDEOS_signalSaved('rankings:channels');
+        VIDEOS_signalSaved('channels');
         VIDEOS_signalSaved('rankings:videos');
 
         if (!class_exists('Videos_Ranking') ||

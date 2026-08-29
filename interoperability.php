@@ -15,6 +15,9 @@ function plugin_idtourl_videos($subType, $itemId = '')
     if ($itemId === 'catalogue') {
         return $base . 'index.php';
     }
+    if ($itemId === 'channels') {
+        return $base . 'channels.php';
+    }
     if ($itemId === 'rankings:videos') {
         return $base . 'rankings.php?tab=videos';
     }
@@ -58,6 +61,9 @@ function plugin_urltoid_videos($url)
     }
     if (substr($path, -17) === '/videos/index.php') {
         return array('type' => 'videos', 'id' => 'catalogue', 'subtype' => 'collection');
+    }
+    if (substr($path, -20) === '/videos/channels.php') {
+        return array('type' => 'videos', 'id' => 'channels', 'subtype' => 'collection');
     }
     if (substr($path, -20) === '/videos/rankings.php') {
         $tab = isset($query['tab']) && $query['tab'] === 'channels' ? 'channels' : 'videos';
@@ -153,6 +159,14 @@ function VIDEOS_structureInfoRecord($id, $bootstrap)
             'title' => VIDEOS_getPublicTitle(), 'url' => plugin_idtourl_videos('', $id),
             'description' => VIDEOS_getPublicTitle(), 'excerpt' => VIDEOS_getPublicTitle(),
             'image' => '', 'date-created' => '', 'date-modified' => $now, 'uid' => 0, 'author' => '');
+    }
+    if ($id === 'channels') {
+        $title = isset($LANG_VIDEOS['channels_title'])
+            ? $LANG_VIDEOS['channels_title'] : 'Recommended video channels';
+        return array('id' => $id, 'type' => 'videos', 'subtype' => 'collection',
+            'title' => $title, 'url' => plugin_idtourl_videos('', $id),
+            'description' => $title, 'excerpt' => $title, 'image' => '',
+            'date-created' => '', 'date-modified' => $now, 'uid' => 0, 'author' => '');
     }
     if ($id === 'rankings:videos' || $id === 'rankings:channels') {
         $title = isset($LANG_VIDEOS['public_rankings_title'])

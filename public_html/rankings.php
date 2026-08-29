@@ -192,7 +192,7 @@ function videos_rankings_render_channels($items, $language)
     foreach ($items as $channelId => $item) {
         $title = !empty($item['title']) ? $item['title'] : $channelId;
         $eligible = Videos_Validator::youtubeChannelId($channelId)
-            && isset($item['video_count']) && (int) $item['video_count'] >= 2;
+            && VIDEOS_channelPageEligible($channelId);
         $html .= '<li class="videos-ranking-item"><div class="videos-ranking-content"><h3>';
         if ($eligible) {
             $html .= '<a href="' . htmlspecialchars(plugin_idtourl_videos('', 'channel:' . $channelId), ENT_QUOTES, 'UTF-8') . '">'

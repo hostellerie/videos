@@ -480,7 +480,7 @@ function videos_catalogue_search_form($action, $query)
         . ' value="' . htmlspecialchars($query, ENT_QUOTES, 'UTF-8') . '"'
         . ' placeholder="' . htmlspecialchars($LANG_VIDEOS['catalogue_search_placeholder'], ENT_QUOTES, 'UTF-8') . '">'
         . '<button type="submit">' . htmlspecialchars($LANG_VIDEOS['catalogue_search_button'], ENT_QUOTES, 'UTF-8') . '</button></div>'
-        . '<p>' . htmlspecialchars($LANG_VIDEOS['catalogue_search_help'], ENT_QUOTES, 'UTF-8') . '</p></form>';
+        . '</form>';
 }
 
 function videos_catalogue_search_style()

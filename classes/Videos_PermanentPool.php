@@ -150,6 +150,7 @@ class Videos_PermanentPool
             if (function_exists('VIDEOS_signalSaved')) {
                 VIDEOS_signalSaved($videoId);
                 VIDEOS_signalSaved('catalogue');
+                VIDEOS_signalSaved('channels');
             } elseif (function_exists('PLG_itemSaved')) {
                 PLG_itemSaved($videoId, 'videos');
             }

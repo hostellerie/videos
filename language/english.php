@@ -238,6 +238,15 @@ $LANG_VIDEOS['channel_view_youtube'] = 'View channel on YouTube';
 $LANG_VIDEOS['channel_featured_videos'] = 'Noteworthy videos';
 $LANG_VIDEOS['channel_pinned_badge'] = 'Pinned';
 
+// 0.18.0 public channels directory
+$LANG_VIDEOS['channels'] = 'Channels';
+$LANG_VIDEOS['channels_title'] = 'Recommended video channels';
+$LANG_VIDEOS['channels_intro'] = 'Discover channels selected for their editorial value and noteworthy videos.';
+$LANG_VIDEOS['channels_meta_description'] = 'Discover recommended video channels and their noteworthy videos selected on this site.';
+$LANG_VIDEOS['channels_empty'] = 'No recommended channel is available yet.';
+$LANG_VIDEOS['channels_unavailable'] = 'The channels directory is temporarily unavailable.';
+$LANG_VIDEOS['channels_view_channel'] = 'View videos from this channel';
+
 $LANG_VIDEOS_FAQ = array(
     'catalogue_selection_q' => 'How are the catalogue videos selected?',
     'catalogue_selection_a' => 'The plugin combines the site topic, administrator settings, YouTube availability and local recommendations. Blocked, private and non-embeddable videos are excluded.',

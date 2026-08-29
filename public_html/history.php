@@ -149,8 +149,7 @@ $html = '<div class="videos-history">'
     . VIDEOS_renderNavigation('history')
     . '<h1>'
     . htmlspecialchars($LANG_VIDEOS['my_videos'], ENT_QUOTES, 'UTF-8')
-    . '</h1><p>Ces données sont associées à un identifiant pseudonyme. '
-    . 'Elles sont conservées sans expiration automatique.</p>';
+    . '</h1>';
 
 if ($historyMessage !== '') {
     $messageKey = 'history_' . $historyMessage;

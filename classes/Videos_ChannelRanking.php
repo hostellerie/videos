@@ -89,6 +89,7 @@ class Videos_ChannelRanking
         if ($beforeSignature !== $this->rankingSignature(array_slice($items, 0, 50, true)) &&
             function_exists('VIDEOS_signalSaved')) {
             VIDEOS_signalSaved('rankings:channels');
+            VIDEOS_signalSaved('channels');
         }
         return count($items);
     }
