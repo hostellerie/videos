@@ -6,13 +6,13 @@ require_once $_CONF['path'] . 'plugins/videos/autoinstall.php';
 if (!SEC_inGroup('Root')) {
     $content = COM_showMessageText(
         'Cette opération est réservée au groupe Root.',
-        'Réparation du plugin Videos',
+        'Diagnostic et récupération Videos',
         true
     );
     echo COM_createHTMLDocument(
         $content,
         array(
-            'pagetitle' => 'Réparation du plugin Videos',
+            'pagetitle' => 'Diagnostic et récupération Videos',
             'headercode' => '<meta name="robots" '
                 . 'content="noindex,nofollow">' . "\n"
         )
@@ -76,15 +76,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$html = '<div class="videos-repair"><h1>Réparation du plugin Videos</h1>';
+$html = '<div class="videos-repair"><h1>Diagnostic et récupération Videos</h1>';
 if ($message !== '') {
     $html .= COM_showMessageText($message, '', true);
 }
-$html .= '<p>Cette page ne supprime jamais les données JSON persistantes '
-    . 'du plugin, qu’elles se trouvent dans l’ancien dossier '
+$html .= '<p>Cette page sert surtout à diagnostiquer une installation incomplète ou des résidus laissés après une installation interrompue. Elle ne modifie pas une installation Videos normale.</p>'
+    . '<p>Les données JSON persistantes du plugin sont toujours conservées, qu’elles se trouvent dans l’ancien dossier '
     . '<code>path_data/videos/</code> ou dans le nouveau dossier frère '
     . '<code>path_data-videos/</code>.</p>'
-    . '<h2>Diagnostic</h2><ul>'
+    . '<h2>État de l’installation</h2><ul>'
     . '<li>Plugin enregistré : ' . ($pluginCount > 0 ? 'oui' : 'non') . '</li>'
     . '<li>Groupe Videos Admin : ' . (!empty($groupId) ? 'présent' : 'absent') . '</li>'
     . '<li>Droits résiduels : ' . count($featureIds) . '</li>'
@@ -103,8 +103,15 @@ if ($pluginCount === 0 &&
         . '<button type="submit">Nettoyer les résidus Videos</button>'
         . '</form>';
 } elseif ($pluginCount > 0) {
-    $html .= '<p>Utilisez la désinstallation normale de Geeklog ; '
-        . 'la réparation est volontairement désactivée.</p>';
+    $html .= '<h2>Aucune réparation de base de données nécessaire</h2>'
+        . '<p>Videos est correctement enregistré dans Geeklog. Aucun résidu d’installation ne peut donc être nettoyé depuis cette page.</p>'
+        . '<p>Si vous rencontrez un problème de fonctionnement, utilisez plutôt les outils adaptés :</p>'
+        . '<ul>'
+        . '<li><a href="' . htmlspecialchars($_CONF['site_admin_url'] . '/plugins/videos/actions.php', ENT_QUOTES, 'UTF-8') . '">Actions</a> pour reconstruire les classements, vider les caches ou gérer le catalogue permanent ;</li>'
+        . '<li><a href="' . htmlspecialchars($_CONF['site_admin_url'] . '/plugins/videos/stats.php', ENT_QUOTES, 'UTF-8') . '">Statistiques</a> pour contrôler le stockage, le cache, l’API et les intégrations ;</li>'
+        . '<li><a href="' . htmlspecialchars($_CONF['site_admin_url'] . '/plugins/videos/moderation.php', ENT_QUOTES, 'UTF-8') . '">Modération</a> pour les vidéos et chaînes bloquées ou prioritaires.</li>'
+        . '</ul>'
+        . '<p>La désinstallation Geeklog n’est utile que si vous souhaitez réellement supprimer le plugin, pas pour corriger un problème courant.</p>';
 } else {
     $html .= '<p>Aucun résidu n’a été détecté.</p>';
 }
@@ -113,7 +120,7 @@ $html .= '</div>';
 echo COM_createHTMLDocument(
     $html,
     array(
-        'pagetitle' => 'Réparation du plugin Videos',
+        'pagetitle' => 'Diagnostic et récupération Videos',
         'headercode' => '<meta name="robots" '
             . 'content="noindex,nofollow">' . "\n"
     )
