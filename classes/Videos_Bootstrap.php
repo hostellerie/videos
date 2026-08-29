@@ -23,7 +23,8 @@ class Videos_Bootstrap
             'attempted' => false,
             'copied' => 0,
             'skipped' => 0,
-            'failed' => 0
+            'failed' => 0,
+            'legacy_fallback' => false
         );
 
         $base = isset($geeklogConfig['path_data'])
@@ -47,7 +48,19 @@ class Videos_Bootstrap
         $this->dataRoot = $root;
 
         if (!$this->migrateLegacyData($this->legacyDataRoot, $root)) {
-            return;
+            // Existing Geeklog installations often grant write permission to
+            // path_data itself but not to its parent directory. In that case
+            // the preferred sibling directory (for example data-videos/) cannot
+            // be created during an upgrade. Keep the plugin operational on the
+            // legacy path instead of making the entire plugin unavailable.
+            // Administrators can later move the data with the repair tools or
+            // configure an explicit writable videos_data_path.
+            if (!is_dir($this->legacyDataRoot) || !is_writable($this->legacyDataRoot)) {
+                return;
+            }
+            $root = $this->legacyDataRoot;
+            $this->dataRoot = $root;
+            $this->migrationStatus['legacy_fallback'] = true;
         }
 
         $this->store = new Videos_JsonStore($root, 5242880);
@@ -239,7 +252,10 @@ class Videos_Bootstrap
         $lockPath = rtrim($destination, '/\\')
             . DIRECTORY_SEPARATOR . '.videos-migration.lock';
         $lock = @fopen($lockPath, 'c+b');
-        if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
+        // Use a blocking lock. A second request during an upgrade should wait
+        // for the migration rather than treating ordinary lock contention as a
+        // permanent storage failure.
+        if ($lock === false || !flock($lock, LOCK_EX)) {
             if (is_resource($lock)) {
                 fclose($lock);
             }
@@ -382,7 +398,8 @@ class Videos_Bootstrap
     private function recordMigrationStatus()
     {
         if (empty($this->migrationStatus['attempted']) ||
-            !empty($this->migrationStatus['failed'])) {
+            !empty($this->migrationStatus['failed']) ||
+            !empty($this->migrationStatus['legacy_fallback'])) {
             return;
         }
         $document = $this->store->createDocument(
@@ -423,7 +440,8 @@ class Videos_Bootstrap
 
     private function loadRecordedMigrationStatus()
     {
-        if (!empty($this->migrationStatus['attempted'])) {
+        if (!empty($this->migrationStatus['attempted']) ||
+            !empty($this->migrationStatus['legacy_fallback'])) {
             return;
         }
         $document = $this->store->read(
@@ -441,7 +459,8 @@ class Videos_Bootstrap
             'skipped' => isset($document['data']['skipped'])
                 ? (int) $document['data']['skipped'] : 0,
             'failed' => isset($document['data']['failed'])
-                ? (int) $document['data']['failed'] : 0
+                ? (int) $document['data']['failed'] : 0,
+            'legacy_fallback' => false
         );
     }
 }
