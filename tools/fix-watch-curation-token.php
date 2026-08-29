@@ -5,7 +5,7 @@ if ($content === false) {
     throw new RuntimeException('Cannot read watch.php');
 }
 
-$old = "$csrfToken = SEC_createToken();\n";
+$old = '$csrfToken = SEC_createToken();' . "\n";
 if (strpos($content, $old) === false) {
     throw new RuntimeException('Initial CSRF token creation not found');
 }
