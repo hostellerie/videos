@@ -65,6 +65,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if ($saved) {
             $message = $LANG_VIDEOS['moderation_saved'];
+            if ($entity === 'video' && Videos_Validator::youtubeVideoId($id)) {
+                VIDEOS_signalSaved($id);
+                VIDEOS_signalSaved('catalogue');
+                VIDEOS_signalSaved('rankings:videos');
+            } elseif ($entity === 'channel' && Videos_Validator::youtubeChannelId($id)) {
+                VIDEOS_signalSaved('channel:' . $id);
+                VIDEOS_signalSaved('channels');
+                VIDEOS_signalSaved('rankings:channels');
+                VIDEOS_signalSaved('rankings:videos');
+                VIDEOS_signalSaved('catalogue');
+            }
             $logger->log(
                 'info',
                 'moderation.' . $entity . '.' . $state,
@@ -147,7 +158,6 @@ echo COM_createHTMLDocument(
 
 function videos_moderation_nav($configuration, $active)
 {
-    global $LANG_VIDEOS;
     global $LANG_VIDEOS;
     $base = $configuration['site_admin_url'] . '/plugins/videos/';
     $items = array(

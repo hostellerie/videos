@@ -116,26 +116,6 @@ if ($store && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = $pool->setManualState($videoId, $stateMap[$action], $rankingItem)
                 ? 'Décision éditoriale enregistrée.'
                 : 'Impossible d’enregistrer cette décision.';
-        } elseif ($action === 'channel_state' && SEC_hasRights('videos.moderate')) {
-            $channelId = isset($_POST['channel_id']) ? COM_applyFilter($_POST['channel_id']) : '';
-            $state = isset($_POST['channel_state']) ? COM_applyFilter($_POST['channel_state']) : '';
-            $allowed = array('neutral', 'allowed', 'priority', 'blocked', 'disabled');
-            if (!Videos_Validator::youtubeChannelId($channelId) || !in_array($state, $allowed, true)) {
-                $message = 'Décision de chaîne invalide.';
-            } else {
-                $actorHash = hash_hmac(
-                    'sha256',
-                    'moderator:' . (int) $_USER['uid'],
-                    $bootstrap->getSecret()
-                );
-                $saved = $moderation->setChannelState(
-                    $channelId,
-                    $state,
-                    'Décision éditoriale depuis la page Actions Videos',
-                    $actorHash
-                );
-                $message = $saved ? 'Décision sur la chaîne enregistrée.' : 'Impossible de modifier la chaîne.';
-            }
         } elseif ($action === 'signal_public_pages') {
             $urls = videos_admin_public_urls(
                 $store,
@@ -164,7 +144,6 @@ if ($store && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $token = SEC_createToken();
 $records = $pool ? $pool->records() : array('items' => array(), 'excluded' => array());
-$priorityChannels = $moderation ? $moderation->getPriorityChannelIds(100) : array();
 
 $html = '<div class="videos-admin"><h1>Videos — Actions</h1>'
     . videos_admin_section_nav($_CONF, 'actions');
@@ -218,31 +197,6 @@ if (SEC_hasRights('videos.maintenance')) {
         . '<button type="submit">Reconstruire le catalogue permanent</button></form>';
 }
 $html .= '</section>';
-
-if (SEC_hasRights('videos.moderate')) {
-    $html .= '<section class="videos-admin-section"><h2>Décisions sur les chaînes</h2>';
-    if (count($priorityChannels) === 0) {
-        $html .= '<p>Aucune chaîne prioritaire.</p>';
-    } else {
-        $html .= '<p><strong>Chaînes prioritaires</strong></p><ul>';
-        foreach ($priorityChannels as $channelId) {
-            $channel = $cache->getChannel($channelId, true);
-            $title = is_array($channel) && !empty($channel['snippet']['title'])
-                ? $channel['snippet']['title'] : $channelId;
-            $html .= '<li><a href="' . htmlspecialchars(plugin_idtourl_videos('', 'channel:' . $channelId), ENT_QUOTES, 'UTF-8') . '">'
-                . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</a> <code>'
-                . htmlspecialchars($channelId, ENT_QUOTES, 'UTF-8') . '</code></li>';
-        }
-        $html .= '</ul>';
-    }
-    $html .= '<form class="videos-admin-form" method="post"><input type="hidden" name="videos_action" value="channel_state">'
-        . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
-        . '<label>ID chaîne <input type="text" name="channel_id" maxlength="40" required></label> '
-        . '<label>Décision <select name="channel_state"><option value="priority">Prioritaire</option>'
-        . '<option value="allowed">Autorisée</option><option value="neutral">Neutre</option>'
-        . '<option value="blocked">Bloquée</option><option value="disabled">Désactivée</option></select></label> '
-        . '<button type="submit">Appliquer</button></form></section>';
-}
 
 $html .= '<section class="videos-admin-section"><h2>YouTube Data API</h2>'
     . '<form class="videos-admin-form" method="post"><input type="hidden" name="videos_action" value="save_key">'

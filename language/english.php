@@ -2,6 +2,8 @@
 
 $LANG_VIDEOS = array(
     'plugin_name' => 'Videos',
+    'curation_failed' => 'Unable to save this editorial decision.',
+    'curation_saved' => 'Editorial decision saved.',
     'search_type_label' => 'Videos',
     'admin_title' => 'Videos administration',
     'public_title' => 'Videos',

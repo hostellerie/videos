@@ -88,6 +88,36 @@ $nextVideos = $recommendation->nextVideos(
     $anonymousViewed
 );
 $permanentPool = new Videos_PermanentPool($bootstrap->getStore(), $cache);
+$curationMessage = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
+    SEC_hasRights('videos.moderate') &&
+    isset($_POST['videos_curation_action'])) {
+    if (!SEC_checkToken()) {
+        $curationMessage = isset($LANG_VIDEOS['history_csrf'])
+            ? $LANG_VIDEOS['history_csrf'] : 'The security token has expired.';
+    } else {
+        $curationAction = COM_applyFilter($_POST['videos_curation_action']);
+        $stateMap = array(
+            'pool_add' => 'added',
+            'pool_pin' => 'pinned',
+            'pool_unpin' => 'unpinned',
+            'pool_remove' => 'removed'
+        );
+        if (isset($stateMap[$curationAction])) {
+            $globalRanking = $ranking->getGlobal(500);
+            $rankingItem = isset($globalRanking[$videoId])
+                ? $globalRanking[$videoId] : array();
+            $saved = $permanentPool->setManualState(
+                $videoId,
+                $stateMap[$curationAction],
+                $rankingItem
+            );
+            $curationMessage = $saved
+                ? $LANG_VIDEOS['curation_saved']
+                : $LANG_VIDEOS['curation_failed'];
+        }
+    }
+}
 $isPermanent = $permanentPool->contains($videoId);
 $isPinned = $permanentPool->isPinned($videoId);
 
@@ -108,9 +138,12 @@ $html = '<article class="videos-watch">'
     . number_format((float) $ratingStats['rating_average'], 2, ',', ' ')
     . '</span>/5 (<span id="videos-local-rating-count">' . (int) $ratingStats['rating_count'] . '</span>)</p>';
 
+if ($curationMessage !== '') {
+    $html .= COM_showMessageText($curationMessage, '', true);
+}
 if (SEC_hasRights('videos.moderate')) {
     $quickModerationUrl = $_CONF['site_admin_url'] . '/plugins/videos/quick_moderation.php?video_id=' . rawurlencode($videoId);
-    $curationUrl = $_CONF['site_admin_url'] . '/plugins/videos/actions.php';
+    $curationUrl = $localUrl;
     $html .= '<aside class="videos-moderation-actions" aria-label="Actions éditoriales"><strong>Actions éditoriales</strong><div>';
     if (!$isPermanent) {
         $html .= videos_watch_curation_form($curationUrl, 'pool_add', $videoId, 'Ajouter au catalogue permanent', $csrfToken);
@@ -155,10 +188,13 @@ for ($ratingValue = 1; $ratingValue <= 5; $ratingValue++) {
         . '" aria-label="' . $ratingValue . ' sur 5" aria-pressed="'
         . ($selected ? 'true' : 'false') . '" class="' . ($selected ? 'is-selected' : '') . '" disabled>&#9733;</button>';
 }
-$html .= '</fieldset><button type="button" class="videos-rating-delete" data-delete-rating'
-    . ($personalRating > 0 ? '' : ' hidden') . ' disabled>'
-    . htmlspecialchars($LANG_VIDEOS['rating_delete'], ENT_QUOTES, 'UTF-8')
-    . '</button><p class="videos-rating-status" aria-live="polite">'
+$html .= '</fieldset>';
+if ($personalRating > 0) {
+    $html .= '<button type="button" class="videos-rating-delete" data-delete-rating disabled>'
+        . htmlspecialchars($LANG_VIDEOS['rating_delete'], ENT_QUOTES, 'UTF-8')
+        . '</button>';
+}
+$html .= '<p class="videos-rating-status" aria-live="polite">'
     . htmlspecialchars($LANG_VIDEOS['rating_locked'], ENT_QUOTES, 'UTF-8') . '</p></div>';
 
 if (!empty($_VIDEOS_CONF['sharing_enabled'])) {
@@ -247,7 +283,7 @@ function videos_watch_curation_form($actionUrl, $action, $videoId, $label, $toke
 {
     return '<form class="videos-inline-form" method="post" action="'
         . htmlspecialchars($actionUrl, ENT_QUOTES, 'UTF-8') . '">'
-        . '<input type="hidden" name="videos_action" value="' . htmlspecialchars($action, ENT_QUOTES, 'UTF-8') . '">'
+        . '<input type="hidden" name="videos_curation_action" value="' . htmlspecialchars($action, ENT_QUOTES, 'UTF-8') . '">'
         . '<input type="hidden" name="video_id" value="' . htmlspecialchars($videoId, ENT_QUOTES, 'UTF-8') . '">'
         . '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">'
         . '<button type="submit">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</button></form>';
