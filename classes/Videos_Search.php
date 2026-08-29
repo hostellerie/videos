@@ -209,6 +209,8 @@ class Videos_Search
             );
             $published = !empty($snippet['publishedAt'])
                 ? strtotime((string) $snippet['publishedAt']) : false;
+            $channel = !empty($snippet['channelTitle'])
+                ? trim((string) $snippet['channelTitle']) : '';
             $ranking = isset($match['ranking']) && is_array($match['ranking'])
                 ? $match['ranking'] : array();
             $rows[] = array(
@@ -216,9 +218,8 @@ class Videos_Search
                 'url' => plugin_idtourl_videos('', $videoId),
                 'title' => $title,
                 'description' => $description,
-                'date' => $published === false
-                    ? '' : date('Y-m-d H:i:s', $published),
-                'uid' => 0,
+                'date' => $published === false ? 'LF_NULL' : (int) $published,
+                'uid' => $channel !== '' ? $channel : 'LF_NULL',
                 'hits' => isset($ranking['view_count'])
                     ? max(0, (int) $ranking['view_count']) : 0
             );

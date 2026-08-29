@@ -34,11 +34,13 @@ function VIDEOS_getSearchService($bootstrap = null)
  */
 function plugin_searchtypes_videos()
 {
+    global $LANG_VIDEOS;
     if (isset($GLOBALS['_VIDEOS_CONF']['enabled']) &&
         empty($GLOBALS['_VIDEOS_CONF']['enabled'])) {
         return array();
     }
-    return array('videos' => VIDEOS_getPublicTitle());
+    return array('videos' => isset($LANG_VIDEOS['search_type_label'])
+        ? $LANG_VIDEOS['search_type_label'] : 'Videos');
 }
 
 /**
@@ -55,7 +57,7 @@ function plugin_dopluginsearch_videos(
     $page,
     $perpage
 ) {
-    global $_CONF;
+    global $_CONF, $LANG_VIDEOS;
 
     if ($type !== 'all' && $type !== 'videos') {
         return false;
@@ -64,7 +66,11 @@ function plugin_dopluginsearch_videos(
         require_once $_CONF['path_system'] . 'classes/searchcriteria.class.php';
     }
 
-    $criteria = new SearchCriteria('videos', VIDEOS_getPublicTitle());
+    $criteria = new SearchCriteria(
+        'videos',
+        isset($LANG_VIDEOS['search_type_label'])
+            ? $LANG_VIDEOS['search_type_label'] : 'Videos'
+    );
     $service = VIDEOS_getSearchService();
     if ($service === false) {
         $criteria->setResults(array());

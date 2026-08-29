@@ -186,25 +186,44 @@ $html .= '</tbody></table></div></section>';
 
 $html .= '<section class="videos-admin-section"><h2>Intégration Geeklog</h2>'
     . '<div class="videos-integration-grid">'
-    . '<div><strong>Recherche native</strong><span>Active via '
-    . '<code>plugin_searchtypes_videos()</code> et '
-    . '<code>plugin_dopluginsearch_videos()</code>.</span></div>'
-    . '<div><strong>Statistiques natives</strong><span>Active via '
-    . '<code>plugin_statssummary_videos()</code> et '
-    . '<code>plugin_showstats_videos()</code>.</span></div>'
-    . '<div><strong>Recherche publique</strong><span>Le même corpus local est '
-    . 'réutilisé sur le catalogue, sans appel YouTube supplémentaire.</span></div>'
-    . '</div></section>';
+    . '<div><strong>Recherche Geeklog</strong><span>Active</span></div>'
+    . '<div><strong>Statistiques Geeklog</strong><span>Actives</span></div>'
+    . '<div><strong>Recherche du catalogue</strong><span>Active</span></div>'
+    . '<div><strong>Interopérabilité ItemInfo</strong><span>Active</span></div>'
+    . '<div><strong>IndexNow</strong><span>'
+    . (function_exists('send_to_indexnow') ? 'Disponible' : 'Indisponible')
+    . '</span></div>'
+    . '</div>'
+    . '<details class="videos-advanced-field"><summary>Informations développeur</summary>'
+    . '<p><code>plugin_searchtypes_videos()</code> · <code>plugin_dopluginsearch_videos()</code><br>'
+    . '<code>plugin_statssummary_videos()</code> · <code>plugin_showstats_videos()</code><br>'
+    . '<code>plugin_getiteminfo_videos()</code> · <code>plugin_idtourl_videos()</code></p>'
+    . '</details></section>';
 
-$html .= '<section class="videos-admin-section"><h2>Diagnostic SEO</h2>'
-    . '<p>Prévisualisation des balises produites pour la première vidéo '
-    . 'du classement global.</p>';
+$html .= '<section class="videos-admin-section"><h2>SEO vidéo</h2>';
 if ($seoDiagnostic !== '') {
-    $html .= '<p>Vidéo test : <code>'
+    $checks = array(
+        'canonical' => strpos($seoDiagnostic, 'rel="canonical"') !== false,
+        'meta description' => strpos($seoDiagnostic, 'name="description"') !== false,
+        'Open Graph' => strpos($seoDiagnostic, 'property="og:') !== false,
+        'VideoObject' => strpos($seoDiagnostic, '"@type":"VideoObject"') !== false,
+        'thumbnailUrl' => strpos($seoDiagnostic, '"thumbnailUrl"') !== false,
+        'uploadDate' => strpos($seoDiagnostic, '"uploadDate"') !== false,
+        'embedUrl' => strpos($seoDiagnostic, '"embedUrl"') !== false
+    );
+    $allOk = !in_array(false, $checks, true);
+    $html .= '<p><strong>SEO vidéo : ' . ($allOk ? 'OK' : 'À vérifier') . '</strong></p>'
+        . '<ul class="videos-admin-status">';
+    foreach ($checks as $label => $ok) {
+        $html .= '<li>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . ' : '
+            . ($ok ? 'OK' : 'À vérifier') . '</li>';
+    }
+    $html .= '</ul><details class="videos-advanced-field"><summary>Diagnostic technique</summary>'
+        . '<p>Vidéo test : <code>'
         . htmlspecialchars($seoDiagnosticVideoId, ENT_QUOTES, 'UTF-8')
         . '</code></p><pre class="videos-seo-preview"><code>'
         . htmlspecialchars($seoDiagnostic, ENT_QUOTES, 'UTF-8')
-        . '</code></pre>';
+        . '</code></pre></details>';
 } else {
     $html .= '<p>Aucune vidéo disponible pour le diagnostic SEO.</p>';
 }

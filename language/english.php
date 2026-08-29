@@ -2,6 +2,7 @@
 
 $LANG_VIDEOS = array(
     'plugin_name' => 'Videos',
+    'search_type_label' => 'Videos',
     'admin_title' => 'Videos administration',
     'public_title' => 'Videos',
     'my_videos' => 'My videos',
@@ -397,6 +398,25 @@ $LANG_VIDEOS_ADMIN_TEXT = array (
   'Les vidéos permanentes et les chaînes éligibles possèdent également leur propre URL canonique.' => 'Permanent videos and eligible channels also have their own canonical URL.',
   'Jamais' => 'Never',
 );
+
+
+foreach (array(
+    'Recherche Geeklog' => 'Geeklog search',
+    'Statistiques Geeklog' => 'Geeklog statistics',
+    'Recherche du catalogue' => 'Catalogue search',
+    'Interopérabilité ItemInfo' => 'ItemInfo interoperability',
+    'Active' => 'Active',
+    'Actives' => 'Active',
+    'Disponible' => 'Available',
+    'Indisponible' => 'Unavailable',
+    'Informations développeur' => 'Developer information',
+    'SEO vidéo' => 'Video SEO',
+    'SEO vidéo : ' => 'Video SEO: ',
+    'À vérifier' => 'Check required',
+    'Diagnostic technique' => 'Technical diagnostics',
+) as $videosAdminSource => $videosAdminTarget) {
+    $LANG_VIDEOS_ADMIN_TEXT[$videosAdminSource] = $videosAdminTarget;
+}
 
 $LANG_VIDEOS_FAQ = array(
     'catalogue_selection_q' => 'How are the catalogue videos selected?',
