@@ -53,8 +53,10 @@ jobs:
           rsync -a ./ build/videos/ \
             --exclude='.git/' \
             --exclude='.github/' \
+            --exclude='.gitignore' \
             --exclude='dist/' \
             --exclude='build/' \
+            --exclude='tools/' \
             --exclude='.agents/' \
             --exclude='.codex/' \
             --exclude='.idea/' \
@@ -73,6 +75,23 @@ jobs:
 
           test -s "dist/${ARCHIVE}"
           unzip -t "dist/${ARCHIVE}"
+
+          # Geeklog 2.2.2 rejects archive entries with unsafe names.
+          # Keep package paths ASCII-only and reject hidden path components.
+          while IFS= read -r entry; do
+            case "$entry" in
+              */) continue ;;
+            esac
+            if printf '%s' "$entry" | grep -qE '(^|/)\.'; then
+              echo "Unsafe hidden archive entry: $entry" >&2
+              exit 1
+            fi
+            if ! printf '%s' "$entry" | grep -qE '^[A-Za-z0-9_./-]+$'; then
+              echo "Unsafe archive filename: $entry" >&2
+              exit 1
+            fi
+          done < <(zipinfo -1 "dist/${ARCHIVE}")
+
           unzip -l "dist/${ARCHIVE}" | head -80
 
       - name: Commit generated archive
