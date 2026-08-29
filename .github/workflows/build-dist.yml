@@ -25,6 +25,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Synchronize branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git pull --ff-only origin "${GITHUB_REF_NAME}"
+
       - name: Build installable ZIP
         shell: bash
         run: |
@@ -76,5 +82,4 @@ jobs:
           fi
 
           git commit -m "Build ${ARCHIVE}"
-          git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
