@@ -52,10 +52,13 @@ if ($bootstrap->isReady()) {
     if ($activeTab === 'videos' && $videosEnabled) {
         $candidates = $ranking->getGlobal(500);
         foreach ($candidates as $videoId => $item) {
+            $video = $cache->getVideo($videoId, true);
             $channelId = isset($item['channel_id']) ? (string) $item['channel_id'] : '';
-            if ($cache->isVideoUnavailable($videoId) || $moderation->isVideoBlocked($videoId) ||
+            if (!is_array($video) || $cache->isVideoUnavailable($videoId) ||
+                $moderation->isVideoBlocked($videoId) ||
                 $moderation->isChannelExcluded($channelId) || isset($blockedVideos[$videoId]) ||
-                isset($blockedChannels[$channelId]) || Videos_VideoPolicy::excludesShortVideo($cache->getVideo($videoId, true), $_VIDEOS_CONF)) {
+                isset($blockedChannels[$channelId]) ||
+                Videos_VideoPolicy::excludesShortVideo($video, $_VIDEOS_CONF)) {
                 continue;
             }
             $videoItems[$videoId] = $item;
@@ -154,7 +157,10 @@ function videos_rankings_render_videos($items, $cache, $configuration, $language
     $html .= '<ol class="videos-ranking-list">';
     foreach ($items as $videoId => $item) {
         $video = $cache->getVideo($videoId, true);
-        $thumbnail = isset($video['snippet']['thumbnails']['medium']['url']) ? $video['snippet']['thumbnails']['medium']['url'] : '';
+        if (!is_array($video)) {
+            continue;
+        }
+        $thumbnail = videos_rankings_thumbnail($video);
         $title = !empty($item['title']) ? $item['title'] : $videoId;
         $channelTitle = !empty($item['channel_title']) ? $item['channel_title'] : '';
         $channelId = !empty($item['channel_id']) ? (string) $item['channel_id'] : '';
@@ -217,6 +223,23 @@ function videos_rankings_metrics($item, $language)
         . htmlspecialchars($language['local_average'], ENT_QUOTES, 'UTF-8') . ' : '
         . number_format($average, 2, ',', ' ') . '/5 (' . $ratings . ')</span><span>'
         . htmlspecialchars($language['ranking_views'], ENT_QUOTES, 'UTF-8') . ' : ' . $views . '</span></p>';
+}
+
+function videos_rankings_thumbnail($video)
+{
+    if (!is_array($video) || empty($video['snippet']['thumbnails']) ||
+        !is_array($video['snippet']['thumbnails'])) {
+        return '';
+    }
+    foreach (array('maxres', 'standard', 'high', 'medium', 'default') as $size) {
+        if (!empty($video['snippet']['thumbnails'][$size]['url'])) {
+            $url = (string) $video['snippet']['thumbnails'][$size]['url'];
+            if (strpos($url, 'https://') === 0) {
+                return $url;
+            }
+        }
+    }
+    return '';
 }
 
 function videos_rankings_csv_set($value)
