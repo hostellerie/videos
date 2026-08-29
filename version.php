@@ -18,3 +18,4 @@ if (!defined('VIDEOS_RELEASE_STATUS')) {
 }
 
 require_once __DIR__ . '/interoperability.php';
+require_once __DIR__ . '/geeklog_integration.php';
