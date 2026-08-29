@@ -338,16 +338,13 @@ function VIDEOS_renderBlock()
     foreach ($items as $videoId => $item) {
         $channelId = isset($item['channel_id'])
             ? (string) $item['channel_id'] : '';
-        if ($mode === 'top_rated' &&
-            empty($item['rating_count'])) {
+        if ($mode === 'top_rated' && empty($item['rating_count'])) {
             continue;
         }
-        if ($mode === 'most_watched' &&
-            empty($item['view_count'])) {
+        if ($mode === 'most_watched' && empty($item['view_count'])) {
             continue;
         }
-        if ($mode === 'recent_activity' &&
-            empty($item['last_viewed_at'])) {
+        if ($mode === 'recent_activity' && empty($item['last_viewed_at'])) {
             continue;
         }
         if ($cache->isVideoUnavailable($videoId) ||
@@ -374,38 +371,17 @@ function VIDEOS_renderBlock()
             break;
         }
     }
-    $content = VIDEOS_renderVideoBlock(
-        $selected,
-        $cache,
-        $_CONF,
-        $LANG_VIDEOS
-    );
-    return VIDEOS_wrapBlockContent(
-        $content,
-        $mode,
-        $LANG_VIDEOS
-    );
+    $content = VIDEOS_renderVideoBlock($selected, $cache, $_CONF, $LANG_VIDEOS);
+    return VIDEOS_wrapBlockContent($content, $mode, $LANG_VIDEOS);
 }
 
 function VIDEOS_getBlockMode()
 {
     global $_VIDEOS_CONF;
-
     $mode = isset($_VIDEOS_CONF['block_mode'])
         ? (string) $_VIDEOS_CONF['block_mode'] : 'recommended';
-    $allowedModes = array(
-        'recommended',
-        'top_rated',
-        'most_watched',
-        'recent_activity',
-        'random',
-        'random_mode',
-        'best_channels'
-    );
-    if (!in_array($mode, $allowedModes, true)) {
-        return 'recommended';
-    }
-    return $mode;
+    $allowedModes = array('recommended', 'top_rated', 'most_watched', 'recent_activity', 'random', 'random_mode', 'best_channels');
+    return in_array($mode, $allowedModes, true) ? $mode : 'recommended';
 }
 
 function VIDEOS_resolveBlockMode($mode)
@@ -413,24 +389,11 @@ function VIDEOS_resolveBlockMode($mode)
     if ($mode !== 'random_mode') {
         return $mode;
     }
-    $modes = array(
-        'recommended',
-        'top_rated',
-        'most_watched',
-        'recent_activity',
-        'random',
-        'best_channels'
-    );
-    $key = array_rand($modes);
-    return $modes[$key];
+    $modes = array('recommended', 'top_rated', 'most_watched', 'recent_activity', 'random', 'best_channels');
+    return $modes[array_rand($modes)];
 }
 
-function VIDEOS_renderVideoBlock(
-    $items,
-    $cache,
-    $configuration,
-    $language
-)
+function VIDEOS_renderVideoBlock($items, $cache, $configuration, $language)
 {
     if (count($items) === 0) {
         return '';
@@ -441,60 +404,35 @@ function VIDEOS_renderVideoBlock(
         $thumbnail = isset($video['snippet']['thumbnails']['medium']['url'])
             ? $video['snippet']['thumbnails']['medium']['url'] : '';
         $title = !empty($item['title']) ? $item['title'] : $videoId;
+        $channel = isset($video['snippet']['channelTitle']) ? $video['snippet']['channelTitle'] : '';
         $shortTitle = VIDEOS_limitWords($title, 6);
-        $url = $configuration['site_url'] . '/videos/watch.php?v='
-            . rawurlencode($videoId);
+        $url = $configuration['site_url'] . '/videos/watch.php?v=' . rawurlencode($videoId);
         $hasThumbnail = strpos($thumbnail, 'https://') === 0;
-        $html .= '<li><a title="'
-            . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '"'
-            . ($hasThumbnail ? '' : ' class="videos-block-no-image"')
-            . ' href="'
+        $html .= '<li><a title="' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '"'
+            . ($hasThumbnail ? '' : ' class="videos-block-no-image"') . ' href="'
             . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '">';
         if ($hasThumbnail) {
-            $html .= '<img loading="lazy" src="'
-                . htmlspecialchars($thumbnail, ENT_QUOTES, 'UTF-8')
-                . '" alt="">';
+            $html .= '<img loading="lazy" src="' . htmlspecialchars($thumbnail, ENT_QUOTES, 'UTF-8')
+                . '" alt="' . htmlspecialchars(VIDEOS_thumbnailAlt($title, $channel), ENT_QUOTES, 'UTF-8') . '">';
         }
-        $html .= '<span>' . htmlspecialchars(
-            $shortTitle,
-            ENT_QUOTES,
-            'UTF-8'
-        )
-            . '</span></a></li>';
+        $html .= '<span>' . htmlspecialchars($shortTitle, ENT_QUOTES, 'UTF-8') . '</span></a></li>';
     }
     return $html . '</ol><p class="videos-block-more"><a href="'
-        . htmlspecialchars(
-            $configuration['site_url'] . '/videos/index.php',
-            ENT_QUOTES,
-            'UTF-8'
-        ) . '">' . htmlspecialchars(
-            $language['view_video_catalogue'],
-            ENT_QUOTES,
-            'UTF-8'
-        ) . '</a></p>';
+        . htmlspecialchars($configuration['site_url'] . '/videos/index.php', ENT_QUOTES, 'UTF-8') . '">'
+        . htmlspecialchars($language['view_video_catalogue'], ENT_QUOTES, 'UTF-8') . '</a></p>';
 }
 
-function VIDEOS_renderChannelBlock(
-    $items,
-    $blockedChannels,
-    $limit,
-    $configuration,
-    $language,
-    $moderation
-) {
+function VIDEOS_renderChannelBlock($items, $blockedChannels, $limit, $configuration, $language, $moderation)
+{
     global $_VIDEOS_CONF;
-
     $html = '<ol class="videos-block-list videos-block-channels">';
     $count = 0;
     foreach ($items as $channelId => $item) {
-        if ($moderation->isChannelExcluded($channelId) ||
-            isset($blockedChannels[$channelId])) {
+        if ($moderation->isChannelExcluded($channelId) || isset($blockedChannels[$channelId])) {
             continue;
         }
         $title = !empty($item['title']) ? $item['title'] : $channelId;
-        $html .= '<li><span>'
-            . htmlspecialchars($title, ENT_QUOTES, 'UTF-8')
-            . '</span></li>';
+        $html .= '<li><span>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</span></li>';
         $count++;
         if ($count >= $limit) {
             break;
@@ -503,31 +441,20 @@ function VIDEOS_renderChannelBlock(
     if ($count === 0) {
         return '';
     }
-    $rankingsAvailable = !empty(
-        $_VIDEOS_CONF['public_rankings_enabled']
-    ) && !empty($_VIDEOS_CONF['public_channel_ranking_enabled']);
+    $rankingsAvailable = !empty($_VIDEOS_CONF['public_rankings_enabled']) && !empty($_VIDEOS_CONF['public_channel_ranking_enabled']);
     $targetUrl = $rankingsAvailable
-        ? $configuration['site_url']
-            . '/videos/rankings.php?tab=channels'
+        ? $configuration['site_url'] . '/videos/rankings.php?tab=channels'
         : $configuration['site_url'] . '/videos/index.php';
-    $targetLabel = $rankingsAvailable
-        ? $language['view_channel_ranking']
-        : $language['view_video_catalogue'];
+    $targetLabel = $rankingsAvailable ? $language['view_channel_ranking'] : $language['view_video_catalogue'];
     return $html . '</ol><p class="videos-block-more"><a href="'
-        . htmlspecialchars(
-            $targetUrl,
-            ENT_QUOTES,
-            'UTF-8'
-        ) . '">' . htmlspecialchars($targetLabel, ENT_QUOTES, 'UTF-8')
-        . '</a></p>';
+        . htmlspecialchars($targetUrl, ENT_QUOTES, 'UTF-8') . '">'
+        . htmlspecialchars($targetLabel, ENT_QUOTES, 'UTF-8') . '</a></p>';
 }
 
 function VIDEOS_compareBlockRatings($left, $right)
 {
-    $leftRating = isset($left['weighted_rating'])
-        ? (float) $left['weighted_rating'] : 0;
-    $rightRating = isset($right['weighted_rating'])
-        ? (float) $right['weighted_rating'] : 0;
+    $leftRating = isset($left['weighted_rating']) ? (float) $left['weighted_rating'] : 0;
+    $rightRating = isset($right['weighted_rating']) ? (float) $right['weighted_rating'] : 0;
     if ($leftRating == $rightRating) {
         return VIDEOS_compareBlockViews($left, $right);
     }
@@ -547,39 +474,28 @@ function VIDEOS_wrapBlockContent($content, $mode, $language)
         'random' => 'block_mode_random',
         'best_channels' => 'block_mode_best_channels'
     );
-    $key = isset($keys[$mode])
-        ? $keys[$mode] : 'block_mode_recommended';
-    $label = isset($language[$key])
-        ? $language[$key] : '';
+    $key = isset($keys[$mode]) ? $keys[$mode] : 'block_mode_recommended';
+    $label = isset($language[$key]) ? $language[$key] : '';
     if ($label === '') {
         return $content;
     }
-    return '<p class="videos-block-mode">'
-        . htmlspecialchars($label, ENT_QUOTES, 'UTF-8')
-        . '</p>' . $content;
+    return '<p class="videos-block-mode">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</p>' . $content;
 }
 
 function VIDEOS_compareBlockViews($left, $right)
 {
-    $leftViews = isset($left['view_count'])
-        ? (int) $left['view_count'] : 0;
-    $rightViews = isset($right['view_count'])
-        ? (int) $right['view_count'] : 0;
+    $leftViews = isset($left['view_count']) ? (int) $left['view_count'] : 0;
+    $rightViews = isset($right['view_count']) ? (int) $right['view_count'] : 0;
     if ($leftViews === $rightViews) {
-        return strcmp(
-            isset($left['video_id']) ? $left['video_id'] : '',
-            isset($right['video_id']) ? $right['video_id'] : ''
-        );
+        return strcmp(isset($left['video_id']) ? $left['video_id'] : '', isset($right['video_id']) ? $right['video_id'] : '');
     }
     return $leftViews > $rightViews ? -1 : 1;
 }
 
 function VIDEOS_compareBlockActivity($left, $right)
 {
-    $leftTime = !empty($left['last_viewed_at'])
-        ? strtotime($left['last_viewed_at']) : 0;
-    $rightTime = !empty($right['last_viewed_at'])
-        ? strtotime($right['last_viewed_at']) : 0;
+    $leftTime = !empty($left['last_viewed_at']) ? strtotime($left['last_viewed_at']) : 0;
+    $rightTime = !empty($right['last_viewed_at']) ? strtotime($right['last_viewed_at']) : 0;
     if ($leftTime == $rightTime) {
         return VIDEOS_compareBlockViews($left, $right);
     }
@@ -632,34 +548,23 @@ function VIDEOS_csvSet($value)
 function plugin_getdocumentationurl_videos($file)
 {
     global $_CONF;
-
-    $allowed = array(
-        'config' => 'ADMIN.html',
-        'install' => 'INSTALL.html',
-        'privacy' => 'PRIVACY.html'
-    );
+    $allowed = array('config' => 'ADMIN.html', 'install' => 'INSTALL.html', 'privacy' => 'PRIVACY.html');
     if (!isset($allowed[$file])) {
         $file = 'config';
     }
-
     return $_CONF['site_url'] . '/videos/docs/' . $allowed[$file];
 }
 
 function plugin_getconfigtooltip_videos($id)
 {
     global $LANG_VIDEOS_TOOLTIPS;
-
-    return isset($LANG_VIDEOS_TOOLTIPS[$id])
-        ? $LANG_VIDEOS_TOOLTIPS[$id]
-        : '';
+    return isset($LANG_VIDEOS_TOOLTIPS[$id]) ? $LANG_VIDEOS_TOOLTIPS[$id] : '';
 }
 
 function VIDEOS_getPublicTitle()
 {
     global $LANG_VIDEOS, $_VIDEOS_CONF;
-
-    $title = isset($_VIDEOS_CONF['public_title'])
-        ? trim(strip_tags((string) $_VIDEOS_CONF['public_title'])) : '';
+    $title = isset($_VIDEOS_CONF['public_title']) ? trim(strip_tags((string) $_VIDEOS_CONF['public_title'])) : '';
     if ($title === '') {
         $title = $LANG_VIDEOS['public_title'];
     }
@@ -672,65 +577,36 @@ function VIDEOS_getPublicTitle()
 function VIDEOS_renderNavigation($active)
 {
     global $_CONF, $LANG_VIDEOS, $_VIDEOS_CONF;
-
     $items = array(
-        'catalogue' => array(
-            'label' => $LANG_VIDEOS['catalogue'],
-            'url' => $_CONF['site_url'] . '/videos/index.php'
-        )
+        'catalogue' => array('label' => $LANG_VIDEOS['catalogue'], 'url' => $_CONF['site_url'] . '/videos/index.php')
     );
     if (!empty($_VIDEOS_CONF['public_rankings_enabled'])) {
-        $items['rankings'] = array(
-            'label' => $LANG_VIDEOS['rankings'],
-            'url' => $_CONF['site_url'] . '/videos/rankings.php'
-        );
+        $items['rankings'] = array('label' => $LANG_VIDEOS['rankings'], 'url' => $_CONF['site_url'] . '/videos/rankings.php');
     }
-    if (!COM_isAnonUser() &&
-        SEC_hasRights('videos.personal_history') &&
-        !empty($_VIDEOS_CONF['account_history_enabled'])) {
-        $items['history'] = array(
-            'label' => $LANG_VIDEOS['my_videos'],
-            'url' => $_CONF['site_url'] . '/videos/history.php'
-        );
+    if (!COM_isAnonUser() && SEC_hasRights('videos.personal_history') && !empty($_VIDEOS_CONF['account_history_enabled'])) {
+        $items['history'] = array('label' => $LANG_VIDEOS['my_videos'], 'url' => $_CONF['site_url'] . '/videos/history.php');
     }
-
     $html = '<nav class="videos-navigation" aria-label="'
-        . htmlspecialchars(
-            $LANG_VIDEOS['video_navigation'],
-            ENT_QUOTES,
-            'UTF-8'
-        ) . '"><ul>';
+        . htmlspecialchars($LANG_VIDEOS['video_navigation'], ENT_QUOTES, 'UTF-8') . '"><ul>';
     foreach ($items as $key => $item) {
-        $html .= '<li><a href="'
-            . htmlspecialchars($item['url'], ENT_QUOTES, 'UTF-8') . '"';
+        $html .= '<li><a href="' . htmlspecialchars($item['url'], ENT_QUOTES, 'UTF-8') . '"';
         if ($active === $key) {
             $html .= ' class="is-active" aria-current="page"';
         }
-        $html .= '>' . htmlspecialchars(
-            $item['label'],
-            ENT_QUOTES,
-            'UTF-8'
-        ) . '</a></li>';
+        $html .= '>' . htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') . '</a></li>';
     }
-    $html .= '</ul></nav>';
-    return $html;
+    return $html . '</ul></nav>';
 }
 
 function plugin_getheadercode_videos()
 {
     global $_CONF, $_VIDEOS_CONF;
-
     if (isset($_VIDEOS_CONF['enabled']) && !$_VIDEOS_CONF['enabled']) {
         return '';
     }
-
     return '<link rel="stylesheet" type="text/css" href="'
-        . htmlspecialchars(
-            $_CONF['site_url'] . '/videos/css/videos.css',
-            ENT_QUOTES,
-            'UTF-8'
-        ) . '?v=' . rawurlencode(VIDEOS_PLUGIN_VERSION)
-        . '">' . "\n";
+        . htmlspecialchars($_CONF['site_url'] . '/videos/css/videos.css', ENT_QUOTES, 'UTF-8')
+        . '?v=' . rawurlencode(VIDEOS_PLUGIN_VERSION) . '">' . "\n";
 }
 
 function VIDEOS_adminHeaderCode()
@@ -741,16 +617,10 @@ function VIDEOS_adminHeaderCode()
 function plugin_user_delete_videos($uid)
 {
     global $_CONF;
-
     $bootstrap = new Videos_Bootstrap($_CONF);
     if (!$bootstrap->isReady()) {
         return false;
     }
-
-    $privacy = new Videos_Privacy(
-        $bootstrap->getStore(),
-        $bootstrap->getSecret()
-    );
-
+    $privacy = new Videos_Privacy($bootstrap->getStore(), $bootstrap->getSecret());
     return $privacy->deleteAccountData($uid);
 }
