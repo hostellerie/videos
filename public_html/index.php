@@ -141,18 +141,6 @@ if (!$bootstrap->isReady()) {
                     $cache
                 );
                 $reservoir->ingest($result['videos'], $query);
-                if ($reservoir->isDue($_VIDEOS_CONF)) {
-                    $reservoir->refresh(
-                        $query,
-                        videos_build_public_search_parameters($_VIDEOS_CONF),
-                        $_VIDEOS_CONF,
-                        videos_create_public_youtube_service(
-                            $bootstrap,
-                            $_VIDEOS_CONF
-                        ),
-                        false
-                    );
-                }
                 $reservoirVideos = $reservoir->videos($_VIDEOS_CONF);
                 if (count($reservoirVideos) > 0) {
                     $result['videos'] = $reservoirVideos;
@@ -404,25 +392,60 @@ echo COM_createHTMLDocument(
     )
 );
 
+/**
+ * Return catalogue data from local persistent state only.
+ *
+ * Public requests must never trigger provider traffic. External discovery and
+ * refresh work belongs to explicit administration/maintenance actions.
+ */
 function videos_public_search($bootstrap, $query, $configuration)
 {
-    return videos_create_public_youtube_service($bootstrap, $configuration)
-        ->find($query, videos_build_public_search_parameters($configuration));
-}
-
-function videos_create_public_youtube_service($bootstrap, $configuration)
-{
-    $store = $bootstrap->getStore();
-    return new Videos_YouTubeService(
-        new Videos_YouTubeClient(
-            $bootstrap->getYouTubeApiKey(),
-            isset($configuration['youtube_timeout'])
-                ? $configuration['youtube_timeout'] : 8
-        ),
-        new Videos_Cache($store),
-        new Videos_Quota($store),
-        new Videos_Logger($store)
+    $cache = new Videos_Cache($bootstrap->getStore());
+    $parameters = videos_build_public_search_parameters($configuration);
+    $context = array(
+        'query' => $query,
+        'parameters' => $parameters
     );
+    $key = $cache->searchKey($context);
+
+    $cached = $cache->getSearch($key, true);
+    if ($cached === false) {
+        $cached = $cache->findCompatibleSearch($context, 500);
+    }
+    if ($cached !== false &&
+        isset($cached['data']['result']) &&
+        is_array($cached['data']['result'])) {
+        $result = $cached['data']['result'];
+        if (!isset($result['videos']) || !is_array($result['videos'])) {
+            $result['videos'] = array();
+        }
+        $result['video_ids'] = array_keys($result['videos']);
+        $result['query'] = $query;
+        $result['cache_key'] = $key;
+        $result['local_only'] = true;
+        return $result;
+    }
+
+    if (!empty($configuration['discovery_enabled'])) {
+        $reservoir = new Videos_DiscoveryReservoir(
+            $bootstrap->getStore(),
+            $cache
+        );
+        $videos = $reservoir->videos($configuration);
+        if (is_array($videos) && count($videos) > 0) {
+            return array(
+                'video_ids' => array_keys($videos),
+                'videos' => $videos,
+                'channels' => array(),
+                'query' => $query,
+                'cache_key' => '',
+                'local_only' => true,
+                'reservoir_fallback' => true
+            );
+        }
+    }
+
+    return false;
 }
 
 function videos_build_public_search_parameters($configuration)
@@ -471,7 +494,6 @@ function videos_build_public_search_parameters($configuration)
 
 function videos_catalogue_search_form($action, $query)
 {
-    global $LANG_VIDEOS;
     global $LANG_VIDEOS;
     return '<form class="videos-catalogue-search" method="get" action="'
         . htmlspecialchars($action, ENT_QUOTES, 'UTF-8') . '">'
