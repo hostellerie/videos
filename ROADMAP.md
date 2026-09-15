@@ -46,15 +46,24 @@ Completed so far on branch `0.20.0`:
 - release validation workflow runs on both `0.19.0` and `0.20.0`;
 - loading/autoload tests run across PHP 5.6, 7.4 and 8.1;
 - Geeklog 2.1.1 and 2.2.2 Plugin API contract checks remain green;
-- a provider contract now isolates the external video capabilities `search()`, `videos()`, `channels()` and `getLastError()`;
+- a provider contract isolates the external video capabilities `search()`, `videos()`, `channels()` and `getLastError()`;
 - `Videos_YouTubeProvider` adapts the existing YouTube client to that provider contract;
 - `Videos_ProviderFactory` centralizes provider/service construction for explicit external synchronization paths;
-- `Videos_HttpClient` now enforces a bounded response size while preserving TLS verification, timeouts, host restrictions and disabled redirects;
+- `Videos_ExternalSync` centralizes administration search, discovery seeding and single-video synchronization;
+- administration code no longer constructs `Videos_YouTubeClient` or `Videos_YouTubeService` directly;
+- `Videos_HttpClient` enforces a bounded response size while preserving TLS verification, timeouts, host restrictions and disabled redirects;
 - the public catalogue no longer triggers YouTube requests or discovery refreshes;
-- public catalogue rendering now reads exact/stale local search cache first, then compatible local cache, then the local discovery reservoir;
+- public catalogue rendering reads exact/stale local search cache first, then compatible local cache, then the local discovery reservoir;
 - explicit discovery refresh remains an administration/maintenance responsibility;
-- CI now enforces a local-only public runtime and fails if public PHP code constructs an external YouTube/provider service or calls `refresh()`;
-- provider and public-runtime contracts are tested across PHP 5.6, 7.4 and 8.1.
+- `Videos_TemplateRenderer` wraps Geeklog's native template layer;
+- `Videos_CatalogueRenderer` now renders the public catalogue through `catalogue.thtml` and `video-card.thtml`;
+- `public_html/index.php` no longer contains the video-card presentation markup;
+- templates remain overridable through Geeklog's normal plugin template resolution;
+- CI enforces both the local-only public runtime and the catalogue presentation boundary;
+- `plugin_feedupdatecheck_videos()` avoids unnecessary feed regeneration when the public editorial corpus has not changed;
+- configuration defaults and `videos_config_schema()` are checked for consistency by CI;
+- the 0.20 distribution workflow derives the archive version/minimum Geeklog version from `version.php`;
+- the installable archive is rebuilt automatically as `videos_0.20.0_2.1.1.zip` and is checked for the provider, feed and template architecture before commit.
 
 ### P1 — move YouTube refresh work out of visitor requests — completed
 
@@ -62,6 +71,8 @@ The public catalogue now follows this model:
 
 ```text
 admin / maintenance
+        -> Videos_ExternalSync
+        -> provider factory
         -> external provider
         -> discovery reservoir / cache
 
@@ -76,7 +87,7 @@ Visitor requests no longer perform provider discovery or reservoir refresh opera
 
 Manual seeding and explicit synchronization remain available from administration/maintenance paths.
 
-Benefits now enforced by CI:
+Benefits enforced by CI:
 
 - predictable frontend response time;
 - no accidental YouTube quota use from catalogue visitors;
@@ -96,16 +107,28 @@ A PHP 5.6-compatible autoloader maps `Videos_*` classes to `classes/<ClassName>.
 
 CI verifies that all Videos class files are actually loadable through the autoloader.
 
-### P1 — introduce `.thtml` templates progressively
+### P1 — introduce `.thtml` templates progressively — catalogue completed
 
-Move significant presentation markup out of long PHP string concatenations.
+The first public presentation boundary is now implemented:
 
-Suggested first targets:
+```text
+classes/
+    Videos_TemplateRenderer.php
+    Videos_CatalogueRenderer.php
+
+templates/default/
+    catalogue.thtml
+    video-card.thtml
+```
+
+`public_html/index.php` prepares catalogue data but delegates presentation to `Videos_CatalogueRenderer`.
+
+The templates are resolved through Geeklog's native `COM_newTemplate()` / `CTL_plugin_templatePath()` mechanism and therefore remain theme-overridable and compatible with Geeklog 2.1.1 through 2.2.2.
+
+Further template extraction should be progressive and only target meaningful presentation blocks, for example:
 
 ```text
 templates/
-    catalogue.thtml
-    video-card.thtml
     navigation.thtml
     admin/
         page.thtml
@@ -113,15 +136,17 @@ templates/
         stats-card.thtml
 ```
 
-Business logic should remain in PHP. Templates should remain theme-independent and compatible with Geeklog 2.1.1 through 2.2.2.
+Business logic must remain in PHP.
 
-### P1 — consolidate configuration definitions
+### P1 — consolidate configuration definitions — partially completed
 
-Configuration is currently represented in several places: defaults, initialization schema, validation, language labels and tooltips.
+Configuration is represented by defaults plus `videos_config_schema()`.
 
-Create one declarative PHP 5.6-compatible schema that can drive as much of this behavior as practical without inventing a large framework.
+CI now verifies that the schema and default configuration contain the same setting set, preventing installation/default drift.
 
-A setting definition may describe:
+Remaining work is to reduce the manual duplication inside `plugin_initconfig_videos()` and, where practical, let the declarative schema drive configuration creation without inventing a large framework.
+
+A setting definition may eventually describe:
 
 - default;
 - Geeklog configuration type;
@@ -130,26 +155,24 @@ A setting definition may describe:
 - select set;
 - validation bounds.
 
-The objective is to reduce duplication and prevent defaults, installation and validation from diverging.
+### P2 — provider abstraction for external video services — completed for 0.20 scope
 
-### P2 — provider abstraction for external video services — foundation completed
-
-The provider boundary is now explicit:
+The external boundary is now explicit:
 
 ```text
-Videos_ProviderInterface
-    search()
-    videos()
-    channels()
-    getLastError()
+Videos_ExternalSync
+    -> Videos_ProviderFactory
+        -> Videos_ProviderInterface
+            search()
+            videos()
+            channels()
+            getLastError()
 
 Videos_YouTubeProvider
     -> Videos_YouTubeClient
 ```
 
-`Videos_ProviderFactory` provides the shared construction point for external provider access.
-
-Remaining consolidation work is to migrate older administration helpers that still instantiate the legacy client/service directly so all external access passes through the factory/provider boundary.
+Administration search, discovery seeding and single-video synchronization now pass through this boundary. CI fails if `admin/actions.php` directly reconstructs the legacy YouTube client/service path.
 
 No additional providers are planned without a demonstrated use case.
 
@@ -208,17 +231,15 @@ Already completed:
 - callback presence after combined loading;
 - autoload coverage across the supported PHP matrix;
 - external provider contract validation;
-- local-only public-runtime validation.
+- local-only public-runtime validation;
+- catalogue template/presentation-boundary validation;
+- configuration schema/default consistency validation.
 
-### P3 — optional feed regeneration optimization
+### P3 — feed regeneration optimization — completed
 
-Add, if useful:
+`plugin_feedupdatecheck_videos()` compares Geeklog's feed update state with the modification signature of the same public editorial corpus used by the Videos feed.
 
-```php
-plugin_feedupdatecheck_videos()
-```
-
-using the latest public corpus modification timestamp.
+Transient discovery/cache changes do not force unnecessary feed regeneration.
 
 ### P3 — native sitemap collector only if justified
 
