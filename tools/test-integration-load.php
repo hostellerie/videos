@@ -3,6 +3,8 @@
 $_CONF = array(
     'path' => dirname(__DIR__) . '/',
     'site_url' => 'https://example.invalid',
+    'language' => 'english',
+    'locale' => 'en_US.UTF-8',
 );
 
 require_once $_CONF['path'] . 'autoload.php';
@@ -10,6 +12,7 @@ VIDEOS_registerAutoloader();
 require_once $_CONF['path'] . 'geeklog_integration.php';
 require_once $_CONF['path'] . 'interoperability.php';
 require_once $_CONF['path'] . 'feed_update.php';
+require_once $_CONF['path'] . 'install_defaults.php';
 
 $requiredCallbacks = array(
     'plugin_searchtypes_videos',
@@ -31,4 +34,54 @@ foreach ($requiredCallbacks as $callback) {
     }
 }
 
-echo 'Videos integration load: OK' . PHP_EOL;
+$schema = videos_config_schema();
+$defaults = videos_default_configuration();
+if (!isset($schema['tabs'], $schema['values']) ||
+    !is_array($schema['tabs']) || !is_array($schema['values'])) {
+    fwrite(STDERR, 'Invalid Videos configuration schema.' . PHP_EOL);
+    exit(1);
+}
+
+$schemaNames = array();
+$orders = array();
+foreach ($schema['values'] as $definition) {
+    if (!is_array($definition) || count($definition) < 4) {
+        fwrite(STDERR, 'Invalid Videos configuration definition.' . PHP_EOL);
+        exit(1);
+    }
+    $name = (string) $definition[0];
+    $fieldset = (int) $definition[2];
+    $order = (int) $definition[3];
+    if (isset($schemaNames[$name])) {
+        fwrite(STDERR, 'Duplicate configuration key: ' . $name . PHP_EOL);
+        exit(1);
+    }
+    if (!in_array($fieldset, array_values($schema['tabs']), true)) {
+        fwrite(STDERR, 'Unknown configuration fieldset for: ' . $name . PHP_EOL);
+        exit(1);
+    }
+    $orderKey = $fieldset . ':' . $order;
+    if (isset($orders[$orderKey])) {
+        fwrite(STDERR, 'Duplicate configuration order: ' . $orderKey . PHP_EOL);
+        exit(1);
+    }
+    $orders[$orderKey] = true;
+    $schemaNames[$name] = true;
+}
+
+$defaultNames = array_fill_keys(array_keys($defaults), true);
+$missingDefaults = array_diff_key($schemaNames, $defaultNames);
+$missingSchema = array_diff_key($defaultNames, $schemaNames);
+if (count($missingDefaults) > 0 || count($missingSchema) > 0) {
+    fwrite(
+        STDERR,
+        'Configuration schema/default mismatch. Schema-only: '
+        . implode(', ', array_keys($missingDefaults))
+        . '; defaults-only: ' . implode(', ', array_keys($missingSchema))
+        . PHP_EOL
+    );
+    exit(1);
+}
+
+echo 'Videos integration load: OK (' . count($schemaNames)
+    . ' configuration keys)' . PHP_EOL;
