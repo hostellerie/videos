@@ -95,5 +95,30 @@ foreach (array('catalogue.thtml', 'video-card.thtml') as $template) {
     }
 }
 
+if (!class_exists('Videos_ExternalSync', true)) {
+    fwrite(STDERR, 'Videos external sync boundary is not autoloadable.' . PHP_EOL);
+    exit(1);
+}
+$syncParameters = Videos_ExternalSync::searchParameters($defaults);
+foreach (array(
+    'max_results',
+    'daily_search_limit',
+    'cache_ttl',
+    'video_cache_ttl',
+    'channel_cache_ttl',
+    'availability_cache_ttl',
+    'safe_search',
+    'language',
+    'region'
+) as $requiredParameter) {
+    if (!array_key_exists($requiredParameter, $syncParameters)) {
+        fwrite(
+            STDERR,
+            'Missing external sync parameter: ' . $requiredParameter . PHP_EOL
+        );
+        exit(1);
+    }
+}
+
 echo 'Videos integration load: OK (' . count($schemaNames)
-    . ' configuration keys, template scaffolding present)' . PHP_EOL;
+    . ' configuration keys, template and sync boundaries present)' . PHP_EOL;
