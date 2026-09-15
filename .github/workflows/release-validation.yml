@@ -63,6 +63,9 @@ jobs:
       - name: Test external provider contract
         run: php tools/test-provider-contract.php
 
+      - name: Test public runtime stays local-only
+        run: php tools/test-public-local-only.php
+
   geeklog-core-contracts:
     name: Geeklog ${{ matrix.label }} core API contracts
     runs-on: ubuntu-latest
