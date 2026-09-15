@@ -30,3 +30,8 @@ if (count($failures) > 0) {
 }
 
 echo 'Videos autoload: OK (' . count($files) . ' class files)' . PHP_EOL;
+
+// Configuration is another plugin-wide declarative contract. Run it here so
+// the same PHP 5.6/7.4/8.1 matrix guards schema/default drift and verifies that
+// initial installation is driven by videos_config_schema().
+require __DIR__ . '/test-config-schema.php';
