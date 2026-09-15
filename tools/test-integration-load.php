@@ -9,6 +9,7 @@ require_once $_CONF['path'] . 'autoload.php';
 VIDEOS_registerAutoloader();
 require_once $_CONF['path'] . 'geeklog_integration.php';
 require_once $_CONF['path'] . 'interoperability.php';
+require_once $_CONF['path'] . 'feed_update.php';
 
 $requiredCallbacks = array(
     'plugin_searchtypes_videos',
@@ -19,6 +20,7 @@ $requiredCallbacks = array(
     'plugin_urltoid_videos',
     'plugin_getfeednames_videos',
     'plugin_getfeedcontent_videos',
+    'plugin_feedupdatecheck_videos',
     'plugin_autotags_videos',
 );
 
