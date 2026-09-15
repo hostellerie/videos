@@ -9,7 +9,7 @@ The objective remains to stabilize the plugin, simplify its architecture, and st
 
 ## 0.19.0 — release stabilization status
 
-Version 0.19.0 is now functionally complete and in final release validation.
+Version 0.19.0 is functionally complete.
 
 ### Completed
 
@@ -19,49 +19,32 @@ Version 0.19.0 is now functionally complete and in final release validation.
 - Shared-files multisite behavior is isolated by each site's `path_data`.
 - Save/delete lifecycle events are implemented for public item transitions.
 - Administration language keys use semantic identifiers instead of hashed `text_xxx` keys.
-- Overview, Actions, Statistics and Moderation now use a consistent administration shell and styling.
-- Native Geeklog Content Syndication support is implemented with:
-  - `plugin_getfeednames_videos()`;
-  - `plugin_getfeedcontent_videos()`;
-  - Item Info reuse;
-  - no YouTube discovery request during feed generation.
-- Install/uninstall metadata has been aligned, including configuration features such as `config.videos.tab_seo`.
+- Overview, Actions, Statistics and Moderation use a consistent administration shell and styling.
+- Native Geeklog Content Syndication support is implemented with `plugin_getfeednames_videos()` and `plugin_getfeedcontent_videos()`.
+- Install/uninstall metadata has been aligned.
 - The installable archive is generated as `videos_0.19.0_2.1.1.zip`.
-- `plugin.json` is included for current plugin metadata discovery.
-- Release status is now `stable`.
-- Manual testing has been completed on Geeklog 2.1.1 and 2.2.2, including the principal fresh-install and upgrade scenarios.
+- `plugin.json` exposes plugin identity and minimum Geeklog/PHP requirements.
+- Manual testing has been completed on Geeklog 2.1.1 and 2.2.2.
 - CI validates PHP 5.6, 7.4 and 8.1 compatibility, storage regression behavior, Geeklog integration contracts, install/uninstall consistency and administration language coverage.
-- A duplicate declaration of `plugin_getfeedcontent_videos()` between `geeklog_integration.php` and `interoperability.php` was removed. The canonical implementation is now in `interoperability.php`.
-
-### Final release safeguards
-
-The remaining 0.19.0 work is limited to release hardening rather than feature development.
-
-#### Add a combined integration-load CI test
-
-The duplicate feed callback exposed a gap in validation: individual PHP files can lint successfully while still declaring the same global callback when loaded together.
-
-Add a CI test that loads the actual integration files in the same process, at minimum:
-
-```php
-require_once 'geeklog_integration.php';
-require_once 'interoperability.php';
-```
-
-The test should fail on duplicate global Plugin API callbacks or other fatal integration-load conflicts.
-
-### Release gate
-
-0.19.0 is ready for release when:
-
-1. `Build installable Videos archive` is green on the final commit;
-2. `Validate Videos release matrix` is green on the final commit;
-3. the combined integration-load CI safeguard is added and green;
-4. no release-blocking regression remains in storage migration, administration, search, syndication, lifecycle events or packaging.
+- The duplicate `plugin_getfeedcontent_videos()` declaration was removed; the canonical implementation is in `interoperability.php`.
 
 ## 0.20.0 — architectural consolidation
 
-Version 0.20.0 should be a simplification release, not a feature race. The objective is to reduce coupling and prepare the plugin for future common Geeklog integration services.
+Version 0.20.0 is now the active development branch. It is a simplification release, not a feature race. The objective is to reduce coupling and prepare the plugin for future common Geeklog integration services.
+
+### Implementation status
+
+Completed so far on branch `0.20.0`:
+
+- version switched to `0.20.0` with release status `development`;
+- PHP 5.6-compatible class autoloader added in `autoload.php`;
+- `functions.inc` no longer eagerly requires the complete Videos class set on every request;
+- Plugin API integration files remain explicitly loaded;
+- combined integration-load test added to detect duplicate callback declarations and fatal load conflicts;
+- autoloader coverage test added for all `classes/Videos_*.php` files;
+- release validation workflow now runs on both `0.19.0` and `0.20.0`;
+- the new loading/autoload tests run across PHP 5.6, 7.4 and 8.1;
+- Geeklog 2.1.1 and 2.2.2 Plugin API contract checks remain green.
 
 ### P1 — move YouTube refresh work out of visitor requests
 
@@ -78,7 +61,7 @@ visitor request
         -> local cache / rankings / editorial corpus
 ```
 
-Move routine reservoir refreshes to explicit maintenance, cron/scheduled execution, or another controlled background mechanism compatible with the supported Geeklog range.
+Move routine reservoir refreshes to explicit maintenance, cron/scheduled execution, or another controlled execution path compatible with the supported Geeklog range.
 
 Keep manual seeding / refresh actions in administration.
 
@@ -89,18 +72,18 @@ Benefits:
 - better resilience during provider outages;
 - clearer separation between external synchronization and public rendering.
 
-### P1 — autoload plugin classes
+### P1 — autoload plugin classes — completed
 
-`functions.inc` currently loads most Videos classes on every Geeklog request.
+A PHP 5.6-compatible autoloader now maps `Videos_*` classes to `classes/<ClassName>.php` using `spl_autoload_register()`.
 
-Introduce a PHP 5.6-compatible autoloader using `spl_autoload_register()` so classes are loaded only when needed.
-
-Keep `functions.inc` focused on:
+`functions.inc` now remains focused on:
 
 - minimal bootstrap;
 - configuration;
 - Plugin API callbacks;
 - compatibility helpers.
+
+CI verifies that all Videos class files are actually loadable through the autoloader.
 
 ### P1 — introduce `.thtml` templates progressively
 
@@ -187,7 +170,7 @@ No migration to SQL is required for 0.20.0 unless a concrete scaling or querying
 
 ### P2 — add focused interoperability tests
 
-Add automated or reproducible tests for:
+Continue adding automated or reproducible tests for:
 
 - `plugin_getiteminfo_videos()` single item;
 - collection `'*'` with `since`, `limit`, `order`;
@@ -197,8 +180,13 @@ Add automated or reproducible tests for:
 - Content Syndication;
 - XMLSitemap Item Info fallback;
 - search and statistics callbacks;
-- moderation visibility rules;
-- combined loading of all Plugin API integration files.
+- moderation visibility rules.
+
+Already completed:
+
+- combined loading of Plugin API integration files;
+- callback presence after combined loading;
+- autoload coverage across the supported PHP matrix.
 
 ### P3 — optional feed regeneration optimization
 
@@ -268,8 +256,6 @@ The following are intentionally not priorities:
 ### 0.19.0
 
 **Stabilize what already exists.**
-
-The release is intended to be safe to install, safe to upgrade, multilingual, interoperable, and predictable in shared-files multisite environments.
 
 ### 0.20.0
 
