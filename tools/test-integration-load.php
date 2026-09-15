@@ -120,5 +120,29 @@ foreach (array(
     }
 }
 
+$adminActions = file_get_contents($_CONF['path'] . 'admin/actions.php');
+if (!is_string($adminActions)) {
+    fwrite(STDERR, 'Unable to inspect admin/actions.php.' . PHP_EOL);
+    exit(1);
+}
+foreach (array(
+    'new Videos_YouTubeClient',
+    'new Videos_YouTubeService'
+) as $forbiddenConstruction) {
+    if (strpos($adminActions, $forbiddenConstruction) !== false) {
+        fwrite(
+            STDERR,
+            'Admin bypasses external sync boundary: '
+            . $forbiddenConstruction . PHP_EOL
+        );
+        exit(1);
+    }
+}
+if (substr_count($adminActions, 'Videos_ExternalSync') < 3) {
+    fwrite(STDERR, 'Admin external sync boundary is not fully wired.' . PHP_EOL);
+    exit(1);
+}
+
 echo 'Videos integration load: OK (' . count($schemaNames)
-    . ' configuration keys, template and sync boundaries present)' . PHP_EOL;
+    . ' configuration keys, template and external sync boundaries present)'
+    . PHP_EOL;
