@@ -66,10 +66,12 @@ if (count($missingFromSchema) > 0 || count($missingFromDefaults) > 0) {
 }
 
 $source = file_get_contents(dirname(__DIR__) . '/install_defaults.php');
+$tabsLoop = 'foreach ($schema[\'tabs\'] as $name => $fieldset)';
+$valuesLoop = 'foreach ($schema[\'values\'] as $definition)';
 if ($source === false ||
     strpos($source, '$schema = videos_config_schema();') === false ||
-    strpos($source, "foreach ($schema['tabs'] as $name => $fieldset)") === false ||
-    strpos($source, "foreach ($schema['values'] as $definition)") === false) {
+    strpos($source, $tabsLoop) === false ||
+    strpos($source, $valuesLoop) === false) {
     fwrite(STDERR, "Initial configuration installation is not schema-driven.\n");
     exit(1);
 }
@@ -81,7 +83,7 @@ if ($initStart === false || $schemaStart === false || $schemaStart <= $initStart
     exit(1);
 }
 $initSource = substr($source, $initStart, $schemaStart - $initStart);
-if (preg_match("/videos_config_add_value\\(\\s*\\$c\\s*,\\s*['\"]/", $initSource)) {
+if (preg_match('/videos_config_add_value\(\s*\$c\s*,\s*[\'\"]/', $initSource)) {
     fwrite(STDERR, "plugin_initconfig_videos() still contains manual configuration definitions.\n");
     exit(1);
 }
