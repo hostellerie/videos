@@ -2,6 +2,7 @@
 
 $_CONF = array();
 require_once dirname(__DIR__) . '/autoload.php';
+VIDEOS_registerAutoloader();
 
 class Videos_TestProviderClient
 {
