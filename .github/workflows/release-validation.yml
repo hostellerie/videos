@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - 0.19.0
+      - 0.20.0
     paths:
       - '**.php'
       - '**.inc'
@@ -52,6 +53,9 @@ jobs:
 
       - name: Test explicit storage migration
         run: php tools/test-storage-migration.php
+
+      - name: Test combined integration loading
+        run: php tools/test-integration-load.php
 
   geeklog-core-contracts:
     name: Geeklog ${{ matrix.label }} core API contracts
@@ -112,6 +116,8 @@ jobs:
           set -euo pipefail
           grep -Fq "define('VIDEOS_MIN_GEEKLOG_VERSION', '2.1.1')" version.php
           grep -Fq "define('VIDEOS_MIN_PHP_VERSION', '5.6.0')" version.php
+          grep -Fq "plugins/videos/autoload.php" functions.inc
+          grep -Fq "VIDEOS_registerAutoloader();" functions.inc
           grep -Fq "plugins/videos/geeklog_integration.php" functions.inc
           grep -Fq "plugins/videos/interoperability.php" functions.inc
 
