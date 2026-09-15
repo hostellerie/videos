@@ -4,9 +4,7 @@
     {search_form}
     {summary}
     {message}
-    <div class="videos-grid">
-        {cards}
-    </div>
+    {grid}
     {pagination}
     {faq}
 </div>
