@@ -10,6 +10,7 @@ on:
       - '**.php'
       - '**.inc'
       - 'language/**'
+      - 'templates/**'
       - 'tools/**'
       - '.github/workflows/release-validation.yml'
 
@@ -157,6 +158,23 @@ jobs:
           fi
           grep -Fq "function_exists('PLG_itemDeleted')" classes/Videos_Moderation.php
           grep -Fq "function_exists('PLG_itemDeleted')" classes/Videos_PermanentPool.php
+
+      - name: Validate catalogue template presentation boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f classes/Videos_TemplateRenderer.php
+          test -f classes/Videos_CatalogueRenderer.php
+          test -f templates/default/catalogue.thtml
+          test -f templates/default/video-card.thtml
+          grep -Fq 'new Videos_CatalogueRenderer(' public_html/index.php
+          grep -Fq "Videos_TemplateRenderer::render('video-card.thtml'" classes/Videos_CatalogueRenderer.php
+          grep -Fq "'catalogue.thtml'" classes/Videos_CatalogueRenderer.php
+          grep -Fq '{grid}' templates/default/catalogue.thtml
+          if grep -Fq '<article class="videos-card"' public_html/index.php; then
+            echo 'Public catalogue controller still renders video-card HTML directly.' >&2
+            exit 1
+          fi
 
       - name: Validate install and uninstall feature symmetry
         shell: bash
