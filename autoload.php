@@ -27,8 +27,6 @@ function VIDEOS_registerAutoloader()
  */
 function VIDEOS_autoloadClass($className)
 {
-    global $_CONF;
-
     $className = (string) $className;
     if (strpos($className, 'Videos_') !== 0) {
         return;
@@ -38,8 +36,7 @@ function VIDEOS_autoloadClass($className)
         return;
     }
 
-    $path = rtrim($_CONF['path'], '/\\')
-        . '/plugins/videos/classes/' . $className . '.php';
+    $path = __DIR__ . '/classes/' . $className . '.php';
     if (is_file($path)) {
         require_once $path;
     }
