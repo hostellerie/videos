@@ -34,6 +34,64 @@ foreach ($requiredCallbacks as $callback) {
     }
 }
 
+$videoId = 'H5nzrlARuCo';
+$channelId = 'UC1234567890123456789012';
+$urlCases = array(
+    $videoId => array(
+        'url' => 'https://example.invalid/videos/watch.php?v=' . $videoId,
+        'subtype' => 'video'
+    ),
+    'channel:' . $channelId => array(
+        'url' => 'https://example.invalid/videos/channel.php?id=' . $channelId,
+        'subtype' => 'channel'
+    ),
+    'catalogue' => array(
+        'url' => 'https://example.invalid/videos/index.php',
+        'subtype' => 'collection'
+    ),
+    'channels' => array(
+        'url' => 'https://example.invalid/videos/channels.php',
+        'subtype' => 'collection'
+    ),
+    'rankings:videos' => array(
+        'url' => 'https://example.invalid/videos/rankings.php?tab=videos',
+        'subtype' => 'ranking'
+    ),
+    'rankings:channels' => array(
+        'url' => 'https://example.invalid/videos/rankings.php?tab=channels',
+        'subtype' => 'ranking'
+    )
+);
+foreach ($urlCases as $id => $expected) {
+    $url = plugin_idtourl_videos('', $id);
+    if ($url !== $expected['url']) {
+        fwrite(
+            STDERR,
+            'Unexpected Videos URL for ' . $id . ': ' . $url . PHP_EOL
+        );
+        exit(1);
+    }
+    $resolved = plugin_urltoid_videos($url);
+    if (!is_array($resolved) ||
+        !isset($resolved['type'], $resolved['id'], $resolved['subtype']) ||
+        $resolved['type'] !== 'videos' ||
+        $resolved['id'] !== $id ||
+        $resolved['subtype'] !== $expected['subtype']) {
+        fwrite(STDERR, 'Videos URL round-trip failed for: ' . $id . PHP_EOL);
+        exit(1);
+    }
+}
+if (plugin_idtourl_videos('', 'not-a-video-id') !== '') {
+    fwrite(STDERR, 'Invalid Videos item ID unexpectedly produced a URL.' . PHP_EOL);
+    exit(1);
+}
+if (plugin_urltoid_videos(
+    'https://outside.invalid/videos/watch.php?v=' . $videoId
+) !== array()) {
+    fwrite(STDERR, 'External host unexpectedly resolved as a Videos item.' . PHP_EOL);
+    exit(1);
+}
+
 $schema = videos_config_schema();
 $defaults = videos_default_configuration();
 if (!isset($schema['tabs'], $schema['values']) ||
@@ -144,5 +202,5 @@ if (substr_count($adminActions, 'Videos_ExternalSync') < 3) {
 }
 
 echo 'Videos integration load: OK (' . count($schemaNames)
-    . ' configuration keys, template and external sync boundaries present)'
+    . ' configuration keys, URL round-trips, template and external sync boundaries present)'
     . PHP_EOL;
