@@ -57,6 +57,9 @@ jobs:
       - name: Test combined integration loading
         run: php tools/test-integration-load.php
 
+      - name: Test Videos class autoloading
+        run: php tools/test-autoload.php
+
   geeklog-core-contracts:
     name: Geeklog ${{ matrix.label }} core API contracts
     runs-on: ubuntu-latest
