@@ -135,8 +135,11 @@ jobs:
           grep -Fq 'function plugin_feedupdatecheck_videos(' feed_update.php
           grep -Fq 'class Videos_ProviderFactory' classes/Videos_ProviderFactory.php
           grep -Fq 'class Videos_TemplateRenderer' classes/Videos_TemplateRenderer.php
+          grep -Fq 'class Videos_CatalogueRenderer' classes/Videos_CatalogueRenderer.php
+          grep -Fq 'new Videos_CatalogueRenderer(' public_html/index.php
           test -s templates/default/catalogue.thtml
           test -s templates/default/video-card.thtml
+          grep -Fq '{grid}' templates/default/catalogue.thtml
           php tools/test-provider-contract.php
           php tools/test-public-local-only.php
           php tools/test-integration-load.php
@@ -214,7 +217,9 @@ jobs:
             unzip -p "dist/${ARCHIVE}" videos/feed_update.php | grep -Fq 'function plugin_feedupdatecheck_videos('
             unzip -p "dist/${ARCHIVE}" videos/classes/Videos_ProviderFactory.php | grep -Fq 'class Videos_ProviderFactory'
             unzip -p "dist/${ARCHIVE}" videos/classes/Videos_TemplateRenderer.php | grep -Fq 'class Videos_TemplateRenderer'
-            unzip -p "dist/${ARCHIVE}" videos/templates/default/catalogue.thtml | grep -Fq '{cards}'
+            unzip -p "dist/${ARCHIVE}" videos/classes/Videos_CatalogueRenderer.php | grep -Fq 'class Videos_CatalogueRenderer'
+            unzip -p "dist/${ARCHIVE}" videos/public_html/index.php | grep -Fq 'new Videos_CatalogueRenderer('
+            unzip -p "dist/${ARCHIVE}" videos/templates/default/catalogue.thtml | grep -Fq '{grid}'
             unzip -p "dist/${ARCHIVE}" videos/templates/default/video-card.thtml | grep -Fq '{video_url}'
           fi
           if unzip -p "dist/${ARCHIVE}" videos/admin/actions.php | grep -Eq 'text_[0-9a-f]{12}|VIDEOS_adminText\('; then
