@@ -222,140 +222,27 @@ $faqItems = !$isLocalSearch &&
     !empty($_VIDEOS_CONF['faq_catalogue_enabled']) &&
     $page === 1 && count($videos) > 0
     ? $faqService->catalogue() : array();
-$html = '<div class="videos-page">'
-    . VIDEOS_renderNavigation('catalogue')
-    . '<h1>' . htmlspecialchars($publicTitle, ENT_QUOTES, 'UTF-8') . '</h1>'
-    . videos_catalogue_search_form(
-        $_CONF['site_url'] . '/videos/index.php',
-        $searchQuery
-    );
-
-if ($isLocalSearch) {
-    $html .= '<div class="videos-search-summary"><strong>'
-        . COM_numberFormat($searchTotal) . '</strong> ' . htmlspecialchars(sprintf($LANG_VIDEOS['catalogue_search_results'], $searchQuery), ENT_QUOTES, 'UTF-8') . ''
-        . ' <a href="'
-        . htmlspecialchars(
-            $_CONF['site_url'] . '/videos/index.php',
-            ENT_QUOTES,
-            'UTF-8'
-        ) . '">' . htmlspecialchars($LANG_VIDEOS['catalogue_show_all'], ENT_QUOTES, 'UTF-8') . '</a></div>';
-}
-if ($message !== '') {
-    $html .= '<p>' . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</p>';
-}
-if (count($videos) > 0) {
-    $html .= '<div class="videos-grid">';
-    foreach ($videos as $videoId => $video) {
-        $snippet = isset($video['snippet']) ? $video['snippet'] : array();
-        $title = isset($snippet['title']) ? $snippet['title'] : $videoId;
-        $channelTitle = isset($snippet['channelTitle'])
-            ? $snippet['channelTitle'] : '';
-        $channelId = isset($snippet['channelId'])
-            ? (string) $snippet['channelId'] : '';
-        $duration = isset($video['videos_duration_seconds'])
-            ? (int) $video['videos_duration_seconds'] : 0;
-        $metadata = isset($videoMetadata[$videoId])
-            ? $videoMetadata[$videoId] : array();
-        $thumbnail = isset($snippet['thumbnails']['medium']['url'])
-            ? $snippet['thumbnails']['medium']['url'] : '';
-        $url = $_CONF['site_url'] . '/videos/watch.php?v='
-            . rawurlencode($videoId);
-        if (!$isLocalSearch && $catalogueContextKey !== '') {
-            $url .= '&c=' . rawurlencode($catalogueContextKey);
-        }
-        $html .= '<article class="videos-card"><a href="'
-            . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '">';
-        if (strpos($thumbnail, 'https://') === 0) {
-            $html .= '<img loading="lazy" src="'
-                . htmlspecialchars($thumbnail, ENT_QUOTES, 'UTF-8')
-                . '" alt="'
-                . htmlspecialchars(
-                    VIDEOS_thumbnailAlt($title, $channelTitle),
-                    ENT_QUOTES,
-                    'UTF-8'
-                ) . '">';
-        }
-        $html .= '</a><div class="videos-card-content"><h2><a href="'
-            . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '">'
-            . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</a></h2>';
-        if ($channelTitle !== '') {
-            $html .= '<p class="videos-card-meta">';
-            if ($channelId !== '' &&
-                VIDEOS_channelPageEligible($channelId, $bootstrap)) {
-                $html .= '<a href="'
-                    . htmlspecialchars(
-                        plugin_idtourl_videos('', 'channel:' . $channelId),
-                        ENT_QUOTES,
-                        'UTF-8'
-                    ) . '">'
-                    . htmlspecialchars($channelTitle, ENT_QUOTES, 'UTF-8')
-                    . '</a>';
-            } else {
-                $html .= htmlspecialchars(
-                    $channelTitle,
-                    ENT_QUOTES,
-                    'UTF-8'
-                );
-            }
-            $html .= '</p>';
-        }
-        if ($duration > 0) {
-            $html .= '<p class="videos-card-meta">'
-                . htmlspecialchars(
-                    $LANG_VIDEOS['video_duration'],
-                    ENT_QUOTES,
-                    'UTF-8'
-                ) . ' : ' . videos_catalogue_duration($duration) . '</p>';
-        }
-        if (!empty($metadata['rating_count'])) {
-            $html .= '<p class="videos-card-meta">'
-                . htmlspecialchars(
-                    $LANG_VIDEOS['local_average'],
-                    ENT_QUOTES,
-                    'UTF-8'
-                ) . ' : '
-                . number_format(
-                    (float) $metadata['rating_average'],
-                    2,
-                    ',',
-                    ' '
-                ) . '/5 (' . (int) $metadata['rating_count'] . ')</p>';
-        }
-        if (!empty($metadata['viewed'])) {
-            $html .= '<span class="videos-card-badge">'
-                . htmlspecialchars(
-                    $LANG_VIDEOS['already_watched'],
-                    ENT_QUOTES,
-                    'UTF-8'
-                ) . '</span>';
-        }
-        if (!empty($metadata['permanent_pool'])) {
-            $html .= '<span class="videos-card-badge videos-pool-badge">'
-                . htmlspecialchars(
-                    $LANG_VIDEOS['permanent_pool_badge'],
-                    ENT_QUOTES,
-                    'UTF-8'
-                ) . '</span>';
-        }
-        $html .= '</div></article>';
-    }
-    $html .= '</div>';
-    if ($pageCount > 1) {
-        $paginationParameters = $isLocalSearch
-            ? array('q' => $searchQuery) : array();
-        $html .= videos_catalogue_pagination(
-            $page,
-            $pageCount,
-            $_CONF['site_url'] . '/videos/index.php',
-            $LANG_VIDEOS,
-            $paginationParameters
-        );
-    }
-}
-if (count($faqItems) > 0) {
-    $html .= $faqService->render($faqItems, $LANG_VIDEOS['faq_title']);
-}
-$html .= '</div>';
+$faqHtml = count($faqItems) > 0
+    ? $faqService->render($faqItems, $LANG_VIDEOS['faq_title']) : '';
+$catalogueRenderer = new Videos_CatalogueRenderer(
+    $bootstrap,
+    $_VIDEOS_CONF,
+    $LANG_VIDEOS,
+    $_CONF['site_url']
+);
+$html = $catalogueRenderer->render(
+    $publicTitle,
+    $videos,
+    $videoMetadata,
+    $catalogueContextKey,
+    $isLocalSearch,
+    $searchTotal,
+    $searchQuery,
+    $page,
+    $pageCount,
+    $message,
+    $faqHtml
+);
 
 if ($isLocalSearch) {
     // Search-result URLs are useful to visitors but should not create an
@@ -492,19 +379,6 @@ function videos_build_public_search_parameters($configuration)
     );
 }
 
-function videos_catalogue_search_form($action, $query)
-{
-    global $LANG_VIDEOS;
-    return '<form class="videos-catalogue-search" method="get" action="'
-        . htmlspecialchars($action, ENT_QUOTES, 'UTF-8') . '">'
-        . '<label for="videos-search-q">' . htmlspecialchars($LANG_VIDEOS['catalogue_search_label'], ENT_QUOTES, 'UTF-8') . '</label>'
-        . '<div><input id="videos-search-q" type="search" name="q" maxlength="120"'
-        . ' value="' . htmlspecialchars($query, ENT_QUOTES, 'UTF-8') . '"'
-        . ' placeholder="' . htmlspecialchars($LANG_VIDEOS['catalogue_search_placeholder'], ENT_QUOTES, 'UTF-8') . '">'
-        . '<button type="submit">' . htmlspecialchars($LANG_VIDEOS['catalogue_search_button'], ENT_QUOTES, 'UTF-8') . '</button></div>'
-        . '</form>';
-}
-
 function videos_catalogue_search_style()
 {
     return '<style>'
@@ -518,60 +392,4 @@ function videos_catalogue_search_style()
         . '.videos-search-summary{margin:0 0 1rem;padding:.7rem .85rem;background:rgba(127,127,127,.08);border-radius:.4rem}'
         . '@media(max-width:520px){.videos-catalogue-search>div{flex-direction:column}.videos-catalogue-search input,.videos-catalogue-search button{width:100%;box-sizing:border-box}}'
         . '</style>';
-}
-
-function videos_catalogue_duration($seconds)
-{
-    $hours = floor($seconds / 3600);
-    $minutes = floor(($seconds % 3600) / 60);
-    $remaining = $seconds % 60;
-    return ($hours > 0 ? $hours . ':' : '')
-        . ($hours > 0
-            ? str_pad($minutes, 2, '0', STR_PAD_LEFT) : $minutes)
-        . ':' . str_pad($remaining, 2, '0', STR_PAD_LEFT);
-}
-
-function videos_catalogue_pagination(
-    $page,
-    $pageCount,
-    $baseUrl,
-    $language,
-    $parameters = array()
-) {
-    $html = '<nav class="videos-pagination" aria-label="Pagination">';
-    if ($page > 1) {
-        $parameters['page'] = $page - 1;
-        $html .= '<a rel="prev" href="'
-            . htmlspecialchars(
-                $baseUrl . '?' . http_build_query($parameters, '', '&'),
-                ENT_QUOTES,
-                'UTF-8'
-            ) . '">'
-            . htmlspecialchars(
-                $language['previous_page'],
-                ENT_QUOTES,
-                'UTF-8'
-            ) . '</a>';
-    }
-    $html .= '<span>'
-        . htmlspecialchars(
-            sprintf($language['catalogue_page'], $page, $pageCount),
-            ENT_QUOTES,
-            'UTF-8'
-        ) . '</span>';
-    if ($page < $pageCount) {
-        $parameters['page'] = $page + 1;
-        $html .= '<a rel="next" href="'
-            . htmlspecialchars(
-                $baseUrl . '?' . http_build_query($parameters, '', '&'),
-                ENT_QUOTES,
-                'UTF-8'
-            ) . '">'
-            . htmlspecialchars(
-                $language['next_page'],
-                ENT_QUOTES,
-                'UTF-8'
-            ) . '</a>';
-    }
-    return $html . '</nav>';
 }
