@@ -139,141 +139,41 @@ function plugin_initconfig_videos($recoverIncompleteInstallation = false)
     }
 
     $c->add('sg_main', null, 'subgroup', 0, 0, null, 0, true, 'videos', 0);
+    if (function_exists('DB_error') && DB_error()) {
+        return false;
+    }
 
-    videos_config_add_tab($c, 'general', 0);
-    videos_config_add_value($c, 'enabled', 'select', 0, 10);
-    videos_config_add_value($c, 'public_title', 'text', 0, 20);
-    videos_config_add_value($c, 'language', 'text', 0, 30);
-    videos_config_add_value($c, 'region', 'text', 0, 40);
-    videos_config_add_value($c, 'videos_per_page', 'text', 0, 50);
-    videos_config_add_value($c, 'suggestion_count', 'text', 0, 60);
-    videos_config_add_value($c, 'sharing_enabled', 'select', 0, 70);
-    videos_config_add_value($c, 'ratings_enabled', 'select', 0, 80);
-    videos_config_add_value($c, 'view_tracking_enabled', 'select', 0, 90);
+    $schema = videos_config_schema();
+    if (!isset($schema['tabs']) || !is_array($schema['tabs']) ||
+        !isset($schema['values']) || !is_array($schema['values'])) {
+        return false;
+    }
 
-    videos_config_add_tab($c, 'youtube', 10);
-    videos_config_add_value($c, 'youtube_daily_search_limit', 'text', 10, 10);
-    videos_config_add_value($c, 'youtube_timeout', 'text', 10, 20);
-    videos_config_add_value($c, 'search_cache_ttl', 'text', 10, 30);
-    videos_config_add_value($c, 'video_cache_ttl', 'text', 10, 40);
-    videos_config_add_value($c, 'channel_cache_ttl', 'text', 10, 50);
-    videos_config_add_value($c, 'availability_cache_ttl', 'text', 10, 55);
-    videos_config_add_value($c, 'youtube_max_results', 'text', 10, 60);
-    videos_config_add_value($c, 'youtube_safe_search', 'text', 10, 70);
-    videos_config_add_value($c, 'discovery_enabled', 'select', 10, 80);
-    videos_config_add_value($c, 'discovery_reservoir_size', 'text', 10, 90);
-    videos_config_add_value($c, 'catalogue_max_videos', 'text', 10, 100);
-    videos_config_add_value($c, 'discovery_seed_searches', 'text', 10, 110);
-    videos_config_add_value($c, 'discovery_refresh_interval', 'text', 10, 120);
-    videos_config_add_value($c, 'discovery_refresh_percentage', 'text', 10, 130);
-    videos_config_add_value($c, 'discovery_recent_percentage', 'text', 10, 140);
-    videos_config_add_value($c, 'discovery_recent_months', 'text', 10, 150);
+    foreach ($schema['tabs'] as $name => $fieldset) {
+        videos_config_add_tab($c, $name, $fieldset);
+        if (function_exists('DB_error') && DB_error()) {
+            return false;
+        }
+    }
 
-    videos_config_add_tab($c, 'analysis', 20);
-    videos_config_add_value($c, 'analysis_mode', 'text', 20, 10);
-    videos_config_add_value($c, 'manual_keywords', 'text', 20, 20);
-    videos_config_add_value($c, 'required_keywords', 'text', 20, 30);
-    videos_config_add_value($c, 'excluded_keywords', 'text', 20, 40);
-    videos_config_add_value($c, 'additional_stop_words', 'text', 20, 50);
-    videos_config_add_value($c, 'max_keywords', 'text', 20, 60);
-    videos_config_add_value($c, 'title_weight', 'text', 20, 70);
-    videos_config_add_value($c, 'meta_weight', 'text', 20, 80);
-    videos_config_add_value($c, 'content_weight', 'text', 20, 90);
-
-    videos_config_add_tab($c, 'sources', 30);
-    videos_config_add_value($c, 'allowed_channels', 'text', 30, 10);
-    videos_config_add_value($c, 'priority_channels', 'text', 30, 20);
-    videos_config_add_value($c, 'blocked_channels', 'text', 30, 30);
-    videos_config_add_value($c, 'blocked_videos', 'text', 30, 40);
-    videos_config_add_value($c, 'exclude_short_videos', 'select', 30, 42);
-    videos_config_add_value($c, 'short_filter_mode', 'select', 30, 43, 4);
-    videos_config_add_value($c, 'short_max_duration', 'text', 30, 44);
-    videos_config_add_value($c, 'privacy_enhanced_embed', 'select', 30, 50);
-    videos_config_add_value($c, 'autoplay', 'select', 30, 60);
-    videos_config_add_value($c, 'description_mode', 'select', 30, 70, 1);
-    videos_config_add_value($c, 'youtube_player_mode', 'select', 30, 80, 2);
-
-    videos_config_add_tab($c, 'ranking', 40);
-    videos_config_add_value($c, 'rating_threshold_seconds', 'text', 40, 10);
-    videos_config_add_value($c, 'view_threshold_seconds', 'text', 40, 20);
-    videos_config_add_value($c, 'view_threshold_percent', 'text', 40, 30);
-    videos_config_add_value($c, 'ranking_rebuild_interval', 'text', 40, 40);
-    videos_config_add_value($c, 'max_same_channel', 'text', 40, 50);
-    videos_config_add_value($c, 'permanent_pool_enabled', 'select', 40, 51);
-    videos_config_add_value($c, 'permanent_pool_size', 'text', 40, 52);
-    videos_config_add_value($c, 'permanent_pool_percentage', 'text', 40, 53);
-    videos_config_add_value($c, 'permanent_pool_auto', 'select', 40, 54);
-    videos_config_add_value($c, 'permanent_pool_min_ratings', 'text', 40, 55);
-    videos_config_add_value(
-        $c,
-        'permanent_pool_min_weighted_rating',
-        'text',
-        40,
-        56
-    );
-    videos_config_add_value(
-        $c,
-        'permanent_pool_keep_below_threshold',
-        'select',
-        40,
-        57
-    );
-    videos_config_add_value($c, 'public_rankings_enabled', 'select', 40, 60);
-    videos_config_add_value(
-        $c,
-        'public_video_ranking_enabled',
-        'select',
-        40,
-        70
-    );
-    videos_config_add_value(
-        $c,
-        'public_channel_ranking_enabled',
-        'select',
-        40,
-        80
-    );
-    videos_config_add_value($c, 'public_ranking_limit', 'text', 40, 90);
-
-    videos_config_add_tab($c, 'privacy', 50);
-    videos_config_add_value($c, 'account_history_enabled', 'select', 50, 10);
-    videos_config_add_value($c, 'account_recommendations_enabled', 'select', 50, 20);
-    videos_config_add_value($c, 'anonymous_tracking_enabled', 'select', 50, 30);
-    videos_config_add_value($c, 'allow_anonymous_merge', 'select', 50, 40);
-    videos_config_add_value($c, 'allow_user_export', 'select', 50, 50);
-    videos_config_add_value($c, 'allow_user_deletion', 'select', 50, 60);
-    videos_config_add_value($c, 'account_retention_days', 'text', 50, 70);
-    videos_config_add_value($c, 'automatic_account_purge', 'select', 50, 80);
-    videos_config_add_value($c, 'anonymous_retention_days', 'text', 50, 90);
-    videos_config_add_value($c, 'privacy_notice', 'text', 50, 100);
-
-    videos_config_add_tab($c, 'block', 60);
-    videos_config_add_value($c, 'block_enabled', 'select', 60, 10);
-    videos_config_add_value($c, 'block_isleft', 'select', 60, 20);
-    videos_config_add_value($c, 'block_order', 'text', 60, 30);
-    videos_config_add_value($c, 'block_mode', 'select', 60, 40, 3);
-    videos_config_add_value($c, 'block_item_count', 'text', 60, 50);
-
-    videos_config_add_tab($c, 'seo', 80);
-    videos_config_add_value($c, 'seo_enabled', 'select', 80, 10);
-    videos_config_add_value($c, 'seo_catalogue_index', 'select', 80, 20);
-    videos_config_add_value($c, 'seo_rankings_index', 'select', 80, 30);
-    videos_config_add_value($c, 'seo_structured_data', 'select', 80, 40);
-    videos_config_add_value($c, 'seo_social_metadata', 'select', 80, 50);
-    videos_config_add_value(
-        $c,
-        'seo_description_fallback',
-        'text',
-        80,
-        60
-    );
-    videos_config_add_value($c, 'faq_catalogue_enabled', 'select', 80, 70);
-    videos_config_add_value($c, 'faq_video_enabled', 'select', 80, 80);
-    videos_config_add_value($c, 'faq_rankings_enabled', 'select', 80, 90);
-    videos_config_add_value($c, 'faq_structured_data', 'select', 80, 100);
-
-    videos_config_add_tab($c, 'maintenance', 70);
-    videos_config_add_value($c, 'technical_log_days', 'text', 70, 10);
+    foreach ($schema['values'] as $definition) {
+        if (!is_array($definition) || count($definition) < 5) {
+            return false;
+        }
+        if (videos_config_add_value(
+            $c,
+            $definition[0],
+            $definition[1],
+            $definition[2],
+            $definition[3],
+            $definition[4]
+        ) === false) {
+            return false;
+        }
+        if (function_exists('DB_error') && DB_error()) {
+            return false;
+        }
+    }
 
     if (!videos_config_verify_defaults($c)) {
         return false;
@@ -590,4 +490,6 @@ function videos_config_add_value(
         'videos',
         $fieldset
     );
+
+    return true;
 }
