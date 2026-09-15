@@ -83,5 +83,17 @@ if (count($missingDefaults) > 0 || count($missingSchema) > 0) {
     exit(1);
 }
 
+if (!class_exists('Videos_TemplateRenderer', true)) {
+    fwrite(STDERR, 'Videos template renderer is not autoloadable.' . PHP_EOL);
+    exit(1);
+}
+foreach (array('catalogue.thtml', 'video-card.thtml') as $template) {
+    $path = $_CONF['path'] . 'templates/default/' . $template;
+    if (!is_file($path) || filesize($path) === 0) {
+        fwrite(STDERR, 'Missing Videos template: ' . $template . PHP_EOL);
+        exit(1);
+    }
+}
+
 echo 'Videos integration load: OK (' . count($schemaNames)
-    . ' configuration keys)' . PHP_EOL;
+    . ' configuration keys, template scaffolding present)' . PHP_EOL;
