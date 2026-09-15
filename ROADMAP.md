@@ -30,7 +30,7 @@ Version 0.19.0 is functionally complete.
 
 ## 0.20.0 — architectural consolidation
 
-Version 0.20.0 is now the active development branch. It is a simplification release, not a feature race. The objective is to reduce coupling and prepare the plugin for future common Geeklog integration services.
+Version 0.20.0 is the active development branch. It is a simplification release, not a feature race. The objective is to reduce coupling and prepare the plugin for future common Geeklog integration services.
 
 ### Implementation status
 
@@ -38,45 +38,56 @@ Completed so far on branch `0.20.0`:
 
 - version switched to `0.20.0` with release status `development`;
 - PHP 5.6-compatible class autoloader added in `autoload.php`;
+- the autoloader resolves classes relative to the plugin itself and is independent of the active Geeklog filesystem root;
 - `functions.inc` no longer eagerly requires the complete Videos class set on every request;
 - Plugin API integration files remain explicitly loaded;
-- combined integration-load test added to detect duplicate callback declarations and fatal load conflicts;
-- autoloader coverage test added for all `classes/Videos_*.php` files;
-- release validation workflow now runs on both `0.19.0` and `0.20.0`;
-- the new loading/autoload tests run across PHP 5.6, 7.4 and 8.1;
-- Geeklog 2.1.1 and 2.2.2 Plugin API contract checks remain green.
+- combined integration-load test detects duplicate callback declarations and fatal load conflicts;
+- autoloader coverage test validates all `classes/Videos_*.php` files;
+- release validation workflow runs on both `0.19.0` and `0.20.0`;
+- loading/autoload tests run across PHP 5.6, 7.4 and 8.1;
+- Geeklog 2.1.1 and 2.2.2 Plugin API contract checks remain green;
+- a provider contract now isolates the external video capabilities `search()`, `videos()`, `channels()` and `getLastError()`;
+- `Videos_YouTubeProvider` adapts the existing YouTube client to that provider contract;
+- `Videos_ProviderFactory` centralizes provider/service construction for explicit external synchronization paths;
+- `Videos_HttpClient` now enforces a bounded response size while preserving TLS verification, timeouts, host restrictions and disabled redirects;
+- the public catalogue no longer triggers YouTube requests or discovery refreshes;
+- public catalogue rendering now reads exact/stale local search cache first, then compatible local cache, then the local discovery reservoir;
+- explicit discovery refresh remains an administration/maintenance responsibility;
+- CI now enforces a local-only public runtime and fails if public PHP code constructs an external YouTube/provider service or calls `refresh()`;
+- provider and public-runtime contracts are tested across PHP 5.6, 7.4 and 8.1.
 
-### P1 — move YouTube refresh work out of visitor requests
+### P1 — move YouTube refresh work out of visitor requests — completed
 
-Public page requests should primarily read local state.
-
-**Target model**
+The public catalogue now follows this model:
 
 ```text
-scheduled/admin maintenance
-        -> YouTube API
+admin / maintenance
+        -> external provider
         -> discovery reservoir / cache
 
 visitor request
-        -> local cache / rankings / editorial corpus
+        -> local search cache
+        -> compatible local cache
+        -> discovery reservoir
+        -> rankings / editorial corpus
 ```
 
-Move routine reservoir refreshes to explicit maintenance, cron/scheduled execution, or another controlled execution path compatible with the supported Geeklog range.
+Visitor requests no longer perform provider discovery or reservoir refresh operations.
 
-Keep manual seeding / refresh actions in administration.
+Manual seeding and explicit synchronization remain available from administration/maintenance paths.
 
-Benefits:
+Benefits now enforced by CI:
 
 - predictable frontend response time;
-- fewer accidental YouTube quota spikes;
-- better resilience during provider outages;
-- clearer separation between external synchronization and public rendering.
+- no accidental YouTube quota use from catalogue visitors;
+- public rendering remains available during provider outages when local data exists;
+- clear separation between external synchronization and public rendering.
 
 ### P1 — autoload plugin classes — completed
 
-A PHP 5.6-compatible autoloader now maps `Videos_*` classes to `classes/<ClassName>.php` using `spl_autoload_register()`.
+A PHP 5.6-compatible autoloader maps `Videos_*` classes to `classes/<ClassName>.php` using `spl_autoload_register()`.
 
-`functions.inc` now remains focused on:
+`functions.inc` remains focused on:
 
 - minimal bootstrap;
 - configuration;
@@ -121,35 +132,44 @@ A setting definition may describe:
 
 The objective is to reduce duplication and prevent defaults, installation and validation from diverging.
 
-### P2 — introduce a provider abstraction for external video services
+### P2 — provider abstraction for external video services — foundation completed
 
-Do not couple the rest of the plugin directly to the current YouTube HTTP implementation.
-
-Introduce a small provider contract around the capabilities Videos actually needs, for example:
+The provider boundary is now explicit:
 
 ```text
-search()
-videos()
-channels()
+Videos_ProviderInterface
+    search()
+    videos()
+    channels()
+    getLastError()
+
+Videos_YouTubeProvider
+    -> Videos_YouTubeClient
 ```
 
-`Videos_YouTubeProvider` can initially wrap the existing YouTube client and service classes.
+`Videos_ProviderFactory` provides the shared construction point for external provider access.
 
-This prepares Videos for the future common Geeklog Integration Layer without depending on an API that does not yet exist.
+Remaining consolidation work is to migrate older administration helpers that still instantiate the legacy client/service directly so all external access passes through the factory/provider boundary.
 
-Do not add provider support that has no real use case.
+No additional providers are planned without a demonstrated use case.
 
-### P2 — strengthen HTTP resilience without overengineering
+### P2 — strengthen HTTP resilience — partially completed
 
-For the current provider client, consider:
+Completed:
 
-- explicit response-size limits;
-- structured errors shared across provider operations;
-- narrowly-scoped retry/backoff for transient 429/5xx responses where safe;
-- provider rate-limit metadata where available;
-- no retry for functional validation errors or exhausted quota conditions.
+- TLS verification;
+- bounded connect/request timeouts;
+- strict YouTube API host restriction;
+- redirects disabled;
+- explicit response-size limit;
+- structured local error state through `getLastError()`.
 
-Keep TLS verification, bounded timeouts and host restrictions.
+Still to evaluate before adding complexity:
+
+- narrowly-scoped retry/backoff for transient 429/5xx responses;
+- provider rate-limit metadata where genuinely useful.
+
+Do not retry functional validation errors or exhausted quota conditions.
 
 ### P2 — define the boundary between JSON storage and SQL
 
@@ -186,7 +206,9 @@ Already completed:
 
 - combined loading of Plugin API integration files;
 - callback presence after combined loading;
-- autoload coverage across the supported PHP matrix.
+- autoload coverage across the supported PHP matrix;
+- external provider contract validation;
+- local-only public-runtime validation.
 
 ### P3 — optional feed regeneration optimization
 
@@ -232,7 +254,7 @@ Videos should continue to follow these rules throughout both releases:
 1. **Site-scoped state** — derive persistent storage and configuration from the active Geeklog site context.
 2. **Shared-files safe upgrades** — deploying new plugin files must not silently migrate every site that shares those files.
 3. **Structured interoperability first** — Item Info, lifecycle events and URL resolution remain the primary common contract.
-4. **Local rendering first** — public rendering should work from local state whenever possible.
+4. **Local rendering first** — public rendering must work from local state without depending on live provider availability.
 5. **No unnecessary duplication of Geeklog Core** — reuse search, statistics, syndication, sitemap and Plugin API mechanisms before inventing plugin-specific alternatives.
 6. **Provider-specific code stays isolated** — YouTube details should not leak throughout the plugin business model.
 7. **Persistent data is not cache** — cache cleanup must never erase editorial, moderation, privacy or user-owned state.
