@@ -61,7 +61,14 @@ Completed so far on branch `0.20.0`:
 - templates remain overridable through Geeklog's normal plugin template resolution;
 - CI enforces both the local-only public runtime and the catalogue presentation boundary;
 - `plugin_feedupdatecheck_videos()` avoids unnecessary feed regeneration when the public editorial corpus has not changed;
-- configuration defaults and `videos_config_schema()` are checked for consistency by CI;
+- `videos_config_schema()` now drives initial Geeklog configuration creation;
+- schema/default parity and initial schema-driven installation are checked in CI;
+- real ID -> URL -> ID round-trip behavior is tested for videos, channels, catalogue and rankings;
+- `plugin_getiteminfo_videos()` is behaviorally tested for single items, field filtering, collection `*`, `since`, `limit` and ordering;
+- native Content Syndication is tested against the same local editorial corpus used by Item Info;
+- moderation visibility is behaviorally tested for blocked videos and excluded channels in both Item Info and syndication;
+- lifecycle interoperability is behaviorally tested for video block/unblock and channel exclusion through `PLG_itemSaved()` / `PLG_itemDeleted()`;
+- these interoperability tests pass across PHP 5.6, 7.4 and 8.1;
 - the 0.20 distribution workflow derives the archive version/minimum Geeklog version from `version.php`;
 - the installable archive is rebuilt automatically as `videos_0.20.0_2.1.1.zip` and is checked for the provider, feed and template architecture before commit.
 
@@ -138,22 +145,21 @@ templates/
 
 Business logic must remain in PHP.
 
-### P1 — consolidate configuration definitions — partially completed
+### P1 — consolidate configuration definitions — completed
 
-Configuration is represented by defaults plus `videos_config_schema()`.
+Configuration remains represented by defaults plus one declarative `videos_config_schema()`.
 
-CI now verifies that the schema and default configuration contain the same setting set, preventing installation/default drift.
+`plugin_initconfig_videos()` now creates the subgroup and then iterates the schema for tabs, fieldsets and values instead of duplicating the complete configuration definition manually.
 
-Remaining work is to reduce the manual duplication inside `plugin_initconfig_videos()` and, where practical, let the declarative schema drive configuration creation without inventing a large framework.
+CI verifies:
 
-A setting definition may eventually describe:
+- schema/default key parity;
+- unique settings;
+- valid fieldsets and ordering;
+- supported setting types;
+- initial configuration creation is actually schema-driven.
 
-- default;
-- Geeklog configuration type;
-- tab;
-- order;
-- select set;
-- validation bounds.
+This keeps the implementation PHP 5.6-compatible and avoids introducing an additional configuration framework.
 
 ### P2 — provider abstraction for external video services — completed for 0.20 scope
 
@@ -211,22 +217,21 @@ SQL
 
 No migration to SQL is required for 0.20.0 unless a concrete scaling or querying problem appears.
 
-### P2 — add focused interoperability tests
+### P2 — focused interoperability tests — substantially completed
 
-Continue adding automated or reproducible tests for:
+Behavioral coverage now includes:
 
 - `plugin_getiteminfo_videos()` single item;
-- collection `'*'` with `since`, `limit`, `order`;
+- collection `'*'` with `since`, `limit`, `modified-desc` and `created-desc`;
+- field filtering;
 - ID -> URL;
 - URL -> ID;
-- save/delete lifecycle signaling;
-- Content Syndication;
-- XMLSitemap Item Info fallback;
-- search and statistics callbacks;
-- moderation visibility rules.
-
-Already completed:
-
+- rejection of invalid IDs and external-host URLs;
+- native Content Syndication using the same editorial corpus;
+- moderation visibility for blocked videos;
+- moderation visibility for excluded channels;
+- save/delete lifecycle signaling for video block/unblock;
+- lifecycle signaling and collection invalidation for channel exclusion;
 - combined loading of Plugin API integration files;
 - callback presence after combined loading;
 - autoload coverage across the supported PHP matrix;
@@ -234,6 +239,12 @@ Already completed:
 - local-only public-runtime validation;
 - catalogue template/presentation-boundary validation;
 - configuration schema/default consistency validation.
+
+Remaining focused candidates:
+
+- XMLSitemap Item Info fallback as exercised by the XMLSitemap plugin;
+- search callback behavior on a local fixture;
+- statistics callback behavior on a local fixture.
 
 ### P3 — feed regeneration optimization — completed
 
