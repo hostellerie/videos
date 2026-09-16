@@ -201,6 +201,8 @@ if (substr_count($adminActions, 'Videos_ExternalSync') < 3) {
     exit(1);
 }
 
+require $_CONF['path'] . 'tools/test-item-info.php';
+
 echo 'Videos integration load: OK (' . count($schemaNames)
-    . ' configuration keys, URL round-trips, template and external sync boundaries present)'
+    . ' configuration keys, URL round-trips, Item Info behavior, template and external sync boundaries present)'
     . PHP_EOL;
