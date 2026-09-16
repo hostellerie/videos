@@ -179,6 +179,41 @@ if ($since !== array('CharlieV003')) {
     $fail('Item Info since filtering failed.');
 }
 
+if (!function_exists('plugin_getfeedcontent_videos')) {
+    $fail('Videos feed callback is not loaded.');
+}
+$feedLink = '';
+$feedUpdate = '';
+$feed = plugin_getfeedcontent_videos(
+    'videos-test',
+    $feedLink,
+    $feedUpdate,
+    'RSS',
+    '2.0'
+);
+if ($feedLink !== 'https://example.invalid/videos/index.php') {
+    $fail('Videos feed catalogue link does not match Item Info routing.');
+}
+if (!is_array($feed) || count($feed) !== 3) {
+    $fail('Videos feed did not expose the complete editorial corpus.');
+}
+$feedTitles = array();
+foreach ($feed as $entry) {
+    if (!is_array($entry) ||
+        !isset($entry['title'], $entry['summary'], $entry['link'], $entry['date'])) {
+        $fail('Videos feed entry is incomplete.');
+    }
+    $feedTitles[] = $entry['title'];
+}
+if ($feedTitles !== array('Charlie video', 'Bravo video', 'Alpha video')) {
+    $fail('Videos feed order diverges from modified-desc Item Info order.');
+}
+foreach (array('CharlieV003', 'BravoVid002', 'AlphaVid001') as $expectedId) {
+    if (strpos($feedUpdate, $expectedId . '@') === false) {
+        $fail('Videos feed update signature misses item: ' . $expectedId);
+    }
+}
+
 $_CONF = $originalConf;
 if ($originalVideosConf === null) {
     unset($GLOBALS['_VIDEOS_CONF']);
@@ -187,7 +222,7 @@ if ($originalVideosConf === null) {
 }
 videos_item_info_remove_tree($tempRoot);
 
-echo 'Videos Item Info contract: OK (single item, fields, since, limit, ordering)'
+echo 'Videos Item Info/feed contract: OK (single item, fields, since, limit, ordering, syndication)'
     . PHP_EOL;
 
 function videos_item_info_ids($records)
