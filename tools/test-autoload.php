@@ -43,3 +43,7 @@ require __DIR__ . '/test-lifecycle-signals.php';
 // Search API and statistics must operate on the same moderated local corpus
 // without provider access.
 require __DIR__ . '/test-search-stats.php';
+
+// Geeklog XMLSitemap falls back to Item Info with the exact
+// url,date-modified collection contract when no specialized collector exists.
+require __DIR__ . '/test-xmlsitemap-fallback.php';
