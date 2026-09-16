@@ -39,3 +39,7 @@ require __DIR__ . '/test-config-schema.php';
 // Lifecycle interoperability must stay stable across the same supported PHP
 // matrix because downstream plugins rely on PLG_itemSaved/PLG_itemDeleted.
 require __DIR__ . '/test-lifecycle-signals.php';
+
+// Search API and statistics must operate on the same moderated local corpus
+// without provider access.
+require __DIR__ . '/test-search-stats.php';
