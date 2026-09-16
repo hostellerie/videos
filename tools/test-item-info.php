@@ -42,24 +42,28 @@ if (!$bootstrap->isReady()) {
 $store = $bootstrap->getStore();
 $cache = new Videos_Cache($store);
 
+$channelOne = 'UC1234567890123456789012';
+$channelTwo = 'UCabcdefghijklmnopqrstuv';
 $videos = array(
     'AlphaVid001' => array(
         'published' => '2024-01-01T10:00:00Z',
         'admitted' => '2024-06-01T10:00:00Z',
-        'title' => 'Alpha video'
+        'title' => 'Alpha video',
+        'channel' => $channelOne
     ),
     'BravoVid002' => array(
         'published' => '2025-01-01T10:00:00Z',
         'admitted' => '2024-07-01T10:00:00Z',
-        'title' => 'Bravo video'
+        'title' => 'Bravo video',
+        'channel' => $channelOne
     ),
     'CharlieV003' => array(
         'published' => '2023-01-01T10:00:00Z',
         'admitted' => '2024-08-01T10:00:00Z',
-        'title' => 'Charlie video'
+        'title' => 'Charlie video',
+        'channel' => $channelTwo
     )
 );
-$channelId = 'UC1234567890123456789012';
 $poolItems = array();
 foreach ($videos as $videoId => $fixture) {
     $resource = array(
@@ -68,8 +72,9 @@ foreach ($videos as $videoId => $fixture) {
             'title' => $fixture['title'],
             'description' => $fixture['title'] . ' description',
             'publishedAt' => $fixture['published'],
-            'channelId' => $channelId,
-            'channelTitle' => 'Fixture channel',
+            'channelId' => $fixture['channel'],
+            'channelTitle' => $fixture['channel'] === $channelOne
+                ? 'Fixture channel one' : 'Fixture channel two',
             'thumbnails' => array(
                 'medium' => array(
                     'url' => 'https://img.example.invalid/' . $videoId . '.jpg'
@@ -214,6 +219,95 @@ foreach (array('CharlieV003', 'BravoVid002', 'AlphaVid001') as $expectedId) {
     }
 }
 
+$moderation = new Videos_Moderation($store);
+$actorHash = str_repeat('a', 64);
+if (!$moderation->setVideoState(
+    'BravoVid002',
+    'blocked',
+    'Fixture moderation test',
+    $actorHash
+)) {
+    $fail('Unable to block fixture video.');
+}
+if (plugin_getiteminfo_videos('BravoVid002', '*') !== '') {
+    $fail('Blocked video remains visible through single-item Item Info.');
+}
+$afterVideoBlock = plugin_getiteminfo_videos(
+    '*',
+    'id',
+    0,
+    array('limit' => 10, 'order' => 'modified-desc')
+);
+if ($afterVideoBlock !== array('CharlieV003', 'AlphaVid001')) {
+    $fail('Blocked video remains visible in Item Info collection.');
+}
+$blockedFeedLink = '';
+$blockedFeedUpdate = '';
+$blockedFeed = plugin_getfeedcontent_videos(
+    'videos-test',
+    $blockedFeedLink,
+    $blockedFeedUpdate,
+    'RSS',
+    '2.0'
+);
+if (!is_array($blockedFeed) || count($blockedFeed) !== 2 ||
+    videos_item_info_feed_titles($blockedFeed) !== array(
+        'Charlie video',
+        'Alpha video'
+    )) {
+    $fail('Blocked video remains visible in Videos feed.');
+}
+if (strpos($blockedFeedUpdate, 'BravoVid002@') !== false) {
+    $fail('Blocked video remains present in feed update signature.');
+}
+if (!$moderation->setVideoState(
+    'BravoVid002',
+    'neutral',
+    '',
+    $actorHash
+)) {
+    $fail('Unable to restore fixture video moderation state.');
+}
+
+if (!$moderation->setChannelState(
+    $channelOne,
+    'blocked',
+    'Fixture channel moderation test',
+    $actorHash
+)) {
+    $fail('Unable to block fixture channel.');
+}
+$afterChannelBlock = plugin_getiteminfo_videos(
+    '*',
+    'id',
+    0,
+    array('limit' => 10, 'order' => 'modified-desc')
+);
+if ($afterChannelBlock !== array('CharlieV003')) {
+    $fail('Blocked channel videos remain visible in Item Info collection.');
+}
+if (plugin_getiteminfo_videos('AlphaVid001', '*') !== '' ||
+    plugin_getiteminfo_videos('BravoVid002', '*') !== '') {
+    $fail('Blocked channel video remains visible through single-item Item Info.');
+}
+$channelFeedLink = '';
+$channelFeedUpdate = '';
+$channelFeed = plugin_getfeedcontent_videos(
+    'videos-test',
+    $channelFeedLink,
+    $channelFeedUpdate,
+    'RSS',
+    '2.0'
+);
+if (!is_array($channelFeed) || count($channelFeed) !== 1 ||
+    videos_item_info_feed_titles($channelFeed) !== array('Charlie video')) {
+    $fail('Blocked channel videos remain visible in Videos feed.');
+}
+if (strpos($channelFeedUpdate, 'AlphaVid001@') !== false ||
+    strpos($channelFeedUpdate, 'BravoVid002@') !== false) {
+    $fail('Blocked channel videos remain present in feed update signature.');
+}
+
 $_CONF = $originalConf;
 if ($originalVideosConf === null) {
     unset($GLOBALS['_VIDEOS_CONF']);
@@ -222,7 +316,7 @@ if ($originalVideosConf === null) {
 }
 videos_item_info_remove_tree($tempRoot);
 
-echo 'Videos Item Info/feed contract: OK (single item, fields, since, limit, ordering, syndication)'
+echo 'Videos Item Info/feed contract: OK (single item, fields, since, limit, ordering, syndication, moderation visibility)'
     . PHP_EOL;
 
 function videos_item_info_ids($records)
@@ -239,6 +333,20 @@ function videos_item_info_ids($records)
         }
     }
     return $ids;
+}
+
+function videos_item_info_feed_titles($feed)
+{
+    $titles = array();
+    if (!is_array($feed)) {
+        return $titles;
+    }
+    foreach ($feed as $entry) {
+        if (is_array($entry) && isset($entry['title'])) {
+            $titles[] = $entry['title'];
+        }
+    }
+    return $titles;
 }
 
 function videos_item_info_remove_tree($path)
