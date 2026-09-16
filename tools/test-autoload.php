@@ -35,3 +35,7 @@ echo 'Videos autoload: OK (' . count($files) . ' class files)' . PHP_EOL;
 // the same PHP 5.6/7.4/8.1 matrix guards schema/default drift and verifies that
 // initial installation is driven by videos_config_schema().
 require __DIR__ . '/test-config-schema.php';
+
+// Lifecycle interoperability must stay stable across the same supported PHP
+// matrix because downstream plugins rely on PLG_itemSaved/PLG_itemDeleted.
+require __DIR__ . '/test-lifecycle-signals.php';
