@@ -23,6 +23,7 @@ Videos now declares:
 content.read
 content.collection
 content.search
+content.popular
 content.url.resolve
 content.lifecycle
 content.syndication
@@ -41,7 +42,7 @@ The plugin remains the owner of its data and business rules:
 - Public rendering and shared read services do not trigger external YouTube synchronization.
 - Dashboard data remains permission-checked with `videos.admin`.
 
-`content.popular` is intentionally not declared in 0.20.0 because the generic Item Info collection does not yet implement the shared `hits-desc` contract. Dedicated local video/channel rankings remain available through `videos.rankings.read`.
+`content.popular` is implemented in 0.20.0. Item Info exposes normalized `hits` from Videos' local qualified-view counter and supports `order=hits-desc`. Dedicated local video/channel rankings remain available through `videos.rankings.read` because ranking score and popularity are intentionally distinct concepts.
 
 ## Packaging
 
