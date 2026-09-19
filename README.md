@@ -34,6 +34,7 @@ The shared capability declaration currently advertises:
 content.read
 content.collection
 content.search
+content.popular
 content.url.resolve
 content.lifecycle
 content.syndication
@@ -43,7 +44,7 @@ videos.rankings.read
 videos.provider.status
 ```
 
-Videos does not advertise `content.popular` yet because the generic Item Info collection does not currently implement the shared `hits-desc` contract. Video/channel rankings remain available through the dedicated bounded ranking service.
+Videos implements `content.popular` through the shared Item Info contract. The normalized `hits` field maps to Videos' local qualified view count, and collections support `order=hits-desc`. Dedicated video/channel ranking services remain separate because they use richer scoring signals than simple popularity.
 
 ## Videos 0.19.0
 
