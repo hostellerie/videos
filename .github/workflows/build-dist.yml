@@ -214,7 +214,7 @@ jobs:
           cd ..
           unzip -t "dist/${ARCHIVE}"
           unzip -p "dist/${ARCHIVE}" videos/functions.inc | grep -Fq 'function VIDEOS_adminPageOpen'
-          unzip -p "dist/${ARCHIVE}" videos/functions.inc | grep -Fq 'plugins/videos/interoperability.php'
+          unzip -p "dist/${ARCHIVE}" videos/functions.inc | grep -Fq "require_once __DIR__ . '/interoperability.php';"
           unzip -p "dist/${ARCHIVE}" videos/interoperability.php | grep -Fq 'function plugin_getfeednames_videos()'
           unzip -p "dist/${ARCHIVE}" videos/interoperability.php | grep -Fq 'function plugin_getfeedcontent_videos('
           unzip -p "dist/${ARCHIVE}" videos/interoperability.php | grep -Fq 'function plugin_getcapabilities_videos()'
