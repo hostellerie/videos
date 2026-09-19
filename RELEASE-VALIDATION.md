@@ -97,6 +97,20 @@ Behavioral coverage includes:
 - statistics summary count from the moderated public local inventory;
 - XMLSitemap's native Item Info fallback contract using `url,date-modified`.
 
+### Shared capability contract
+
+CI verifies:
+
+- `plugin_getcapabilities_videos()` declares the shared schema-1 content/service capabilities;
+- unsupported `content.popular` is not advertised;
+- `services.inc.php` exposes `dashboard_summary`, `channels_read`, `rankings_read` and `provider_status`;
+- `functions.inc` loads the shared service layer;
+- `dashboard.summary` requires `videos.admin`;
+- provider status documents that public rendering is local-only;
+- the installable ZIP contains the capability declaration and dashboard service.
+
+These checks protect the provider-neutral contract consumed by Agent, Eclipse, Hub and future integrations.
+
 ### HTTP safety
 
 The external YouTube transport keeps:
@@ -195,6 +209,18 @@ Validate that:
 - blocked/excluded/unavailable videos are omitted;
 - no dedicated `plugin_collectSitemapItems_videos()` is required for 0.20.0.
 
+### Agent / Eclipse / Hub interoperability
+
+- capability discovery returns schema 1 with roles `content` and `service`;
+- `dashboard_summary` succeeds for a Videos administrator and is rejected for a user without `videos.admin`;
+- dashboard output contains `schema`, `status`, `metrics`, `alerts`, `links` and `updated`;
+- `channels_read` returns only bounded local channel data and does not call YouTube;
+- `rankings_read` returns bounded local video/channel ranking data and does not call YouTube;
+- `provider_status` does not expose API keys, secrets or personal data;
+- Agent can consume Videos Item Info/collections without scraping HTML;
+- Eclipse can render a Videos dashboard card without querying Videos JSON files;
+- Hub can consume Videos identity, lifecycle and read capabilities without a Videos-specific registry.
+
 ### Lifecycle / downstream interoperability
 
 - adding/re-admitting a retained public video emits save lifecycle events;
@@ -212,6 +238,6 @@ Validate that:
 3. all six real-installation rows above are recorded as Passed;
 4. catalogue template rendering has been visually checked on both Geeklog 2.1.1 and 2.2.2;
 5. a 0.19.0 -> 0.20.0 upgrade has preserved configuration and persistent data on both reference versions;
-6. no release-blocking regression remains in storage, administration, public rendering, search, syndication, sitemap fallback or lifecycle interoperability.
+6. no release-blocking regression remains in storage, administration, public rendering, search, syndication, sitemap fallback, lifecycle interoperability or shared Agent/Eclipse/Hub capability exposure.
 
 Until those manual checks are completed, `VIDEOS_RELEASE_STATUS` should remain `development`.
