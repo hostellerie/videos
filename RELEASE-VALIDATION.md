@@ -88,7 +88,8 @@ Behavioral coverage includes:
 - invalid ID rejection and foreign-host URL rejection;
 - Item Info single-item retrieval;
 - Item Info field filtering;
-- collection `'*'` with `since`, `limit`, `modified-desc` and `created-desc`;
+- normalized `hits` from local qualified views;
+- collection `'*'` with `since`, `limit`, `modified-desc`, `created-desc` and `hits-desc`;
 - Content Syndication generated from the same local editorial corpus;
 - blocked videos omitted from Item Info and feeds;
 - excluded-channel videos omitted from Item Info and feeds;
@@ -102,7 +103,7 @@ Behavioral coverage includes:
 CI verifies:
 
 - `plugin_getcapabilities_videos()` declares the shared schema-1 content/service capabilities;
-- unsupported `content.popular` is not advertised;
+- `content.popular` is advertised only with normalized `hits` and `hits-desc` collection ordering;
 - `services.inc.php` exposes `dashboard_summary`, `channels_read`, `rankings_read` and `provider_status`;
 - `functions.inc` loads the shared service layer;
 - `dashboard.summary` requires `videos.admin`;
