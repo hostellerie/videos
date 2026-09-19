@@ -150,3 +150,118 @@ function service_provider_status_videos($args, &$output, &$svc_msg)
 
     return PLG_RET_OK;
 }
+
+
+/**
+ * Return a bounded read-only list of locally known public channels.
+ */
+function service_channels_read_videos($args, &$output, &$svc_msg)
+{
+    $output = array();
+    $svc_msg = array();
+
+    if (VIDEOS_serviceRejectWeb($args, $svc_msg)) {
+        return PLG_RET_AUTH_FAILED;
+    }
+
+    $bootstrap = VIDEOS_interopBootstrap();
+    if ($bootstrap === false) {
+        $svc_msg['error_desc'] = 'Videos local storage is not available.';
+        return PLG_RET_ERROR;
+    }
+
+    $limit = isset($args['limit']) ? (int) $args['limit'] : 50;
+    $limit = max(1, min(100, $limit));
+
+    $store = $bootstrap->getStore();
+    $cache = new Videos_Cache($store);
+    $moderation = new Videos_Moderation($store);
+    $known = $cache->listKnownChannels(500);
+    $items = array();
+
+    foreach ($known as $channelId => $channel) {
+        if ($moderation->isChannelExcluded($channelId)) {
+            continue;
+        }
+        $items[] = array(
+            'id' => 'channel:' . $channelId,
+            'channel_id' => $channelId,
+            'title' => isset($channel['title']) ? (string) $channel['title'] : $channelId,
+            'url' => plugin_idtourl_videos('', 'channel:' . $channelId)
+        );
+        if (count($items) >= $limit) {
+            break;
+        }
+    }
+
+    $output = array(
+        'schema' => 1,
+        'provider' => 'videos',
+        'items' => $items,
+        'limit' => $limit
+    );
+
+    return PLG_RET_OK;
+}
+
+/**
+ * Return bounded local video or channel rankings without external requests.
+ */
+function service_rankings_read_videos($args, &$output, &$svc_msg)
+{
+    $output = array();
+    $svc_msg = array();
+
+    if (VIDEOS_serviceRejectWeb($args, $svc_msg)) {
+        return PLG_RET_AUTH_FAILED;
+    }
+
+    $bootstrap = VIDEOS_interopBootstrap();
+    if ($bootstrap === false) {
+        $svc_msg['error_desc'] = 'Videos local storage is not available.';
+        return PLG_RET_ERROR;
+    }
+
+    $kind = isset($args['kind']) && (string) $args['kind'] === 'channels'
+        ? 'channels' : 'videos';
+    $limit = isset($args['limit']) ? (int) $args['limit'] : 20;
+    $limit = max(1, min(100, $limit));
+
+    $store = $bootstrap->getStore();
+    $cache = new Videos_Cache($store);
+    if ($kind === 'channels') {
+        $ranking = new Videos_ChannelRanking($store, $cache);
+        $records = $ranking->getGlobal($limit);
+    } else {
+        $ranking = new Videos_Ranking(
+            $store,
+            new Videos_RatingStats($store),
+            new Videos_VideoStats($store),
+            $cache
+        );
+        $records = $ranking->getGlobal($limit);
+    }
+
+    $items = array();
+    foreach ($records as $id => $record) {
+        if (!is_array($record)) {
+            continue;
+        }
+        $item = $record;
+        $item['id'] = (string) $id;
+        $item['url'] = $kind === 'channels'
+            ? plugin_idtourl_videos('', 'channel:' . $id)
+            : plugin_idtourl_videos('', $id);
+        $items[] = $item;
+    }
+
+    $output = array(
+        'schema' => 1,
+        'provider' => 'videos',
+        'kind' => $kind,
+        'items' => $items,
+        'limit' => $limit
+    );
+
+    return PLG_RET_OK;
+}
