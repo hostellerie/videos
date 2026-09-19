@@ -451,3 +451,60 @@ function plugin_autotags_videos($op, $content = '', $autotag = '')
     }
     return str_replace($autotag['tagstr'], $replacement, $content);
 }
+
+
+/**
+ * Advertise provider-neutral Videos capabilities for Agent, Hub, Eclipse and
+ * other consumers. The declaration is descriptive only and never grants
+ * authorization.
+ */
+function plugin_getcapabilities_videos()
+{
+    return array(
+        'schema' => 1,
+        'roles' => array('content', 'service'),
+        'capabilities' => array(
+            'content.read',
+            'content.collection',
+            'content.search',
+            'content.url.resolve',
+            'content.lifecycle',
+            'content.syndication',
+            'content.popular',
+            'dashboard.summary',
+            'videos.channels.read',
+            'videos.rankings.read',
+            'videos.provider.status'
+        )
+    );
+}
+
+/**
+ * Compact compatibility map for consumers that predate the shared capability
+ * declaration. New consumers should prefer plugin_getcapabilities_videos().
+ */
+function VIDEOS_interopCapabilities()
+{
+    return array(
+        'content_info' => true,
+        'collections' => true,
+        'content_search' => true,
+        'content_popular' => true,
+        'item_saved' => true,
+        'item_deleted' => true,
+        'id_to_url' => true,
+        'url_to_id' => true,
+        'content_syndication' => true,
+        'autotags' => true,
+        'php_blocks' => true,
+        'dashboard_summary' => true,
+        'channels_read' => true,
+        'rankings_read' => true,
+        'provider_status' => true,
+        'audience_metrics' => false,
+        'search_metrics' => false,
+        'query_metrics' => false,
+        'indexing_status' => false,
+        'submission_status' => false
+    );
+}
