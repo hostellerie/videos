@@ -71,6 +71,7 @@ Completed so far on branch `0.20.0`:
 - these interoperability tests pass across PHP 5.6, 7.4 and 8.1;
 - the 0.20 distribution workflow derives the archive version/minimum Geeklog version from `version.php`;
 - the installable archive is rebuilt automatically as `videos_0.20.0_2.1.1.zip` and is checked for the provider, feed and template architecture before commit.
+- the explicit `0.19.0 -> 0.20.0` upgrade transition is registered and tested; it is a no-op migration because 0.20.0 adds architecture/interoperability only.
 - `plugin_getcapabilities_videos()` now declares the shared provider-neutral content/service capabilities defined by the memorandum;
 - Videos exposes read-only `dashboard_summary`, `channels_read`, `rankings_read` and `provider_status` services for Agent, Eclipse, Hub and future consumers;
 - the Eclipse-facing dashboard contract is provider-owned, permission-checked with `videos.admin`, and does not require Eclipse-specific code in Videos;
