@@ -6,7 +6,7 @@ if (!isset($_CONF)) {
     die('This file cannot be used on its own.');
 }
 
-require_once $_CONF['path'] . 'plugins/videos/version.php';
+require_once __DIR__ . '/version.php';
 
 function plugin_autoinstall_videos($pi_name)
 {
