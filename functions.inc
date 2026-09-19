@@ -6,10 +6,10 @@ if (!isset($_CONF)) {
     die('This file cannot be used on its own.');
 }
 
-require_once $_CONF['path'] . 'plugins/videos/version.php';
-require_once $_CONF['path'] . 'plugins/videos/autoinstall.php';
-require_once $_CONF['path'] . 'plugins/videos/install_defaults.php';
-require_once $_CONF['path'] . 'plugins/videos/autoload.php';
+require_once __DIR__ . '/version.php';
+require_once __DIR__ . '/autoinstall.php';
+require_once __DIR__ . '/install_defaults.php';
+require_once __DIR__ . '/autoload.php';
 VIDEOS_registerAutoloader();
 
 define('VIDEOS_PLUGIN_NAME', 'videos');
@@ -22,9 +22,9 @@ if (!file_exists($videosLanguage)) {
 }
 require_once $videosLanguage;
 
-require_once $_CONF['path'] . 'plugins/videos/geeklog_integration.php';
-require_once $_CONF['path'] . 'plugins/videos/interoperability.php';
-require_once $_CONF['path'] . 'plugins/videos/services.inc.php';
+require_once __DIR__ . '/geeklog_integration.php';
+require_once __DIR__ . '/interoperability.php';
+require_once __DIR__ . '/services.inc.php';
 
 $_VIDEOS_CONF = array();
 if (class_exists('config')) {
@@ -126,7 +126,7 @@ function plugin_upgrade_videos()
     }
     $codeVersion = plugin_chkVersion_videos();
 
-    require_once $_CONF['path'] . 'plugins/videos/autoinstall.php';
+    require_once __DIR__ . '/autoinstall.php';
     if (!plugin_compatible_with_this_version_videos('videos')) {
         return 3002;
     }
