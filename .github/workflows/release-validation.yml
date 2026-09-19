@@ -58,6 +58,9 @@ jobs:
       - name: Test combined integration loading
         run: php tools/test-integration-load.php
 
+      - name: Test Core function-scope plugin loading
+        run: php tools/test-function-scope-load.php
+
       - name: Test Videos class autoloading
         run: php tools/test-autoload.php
 
