@@ -41,6 +41,7 @@ if (!$bootstrap->isReady()) {
 }
 $store = $bootstrap->getStore();
 $cache = new Videos_Cache($store);
+$videoStats = new Videos_VideoStats($store);
 
 $channelOne = 'UC1234567890123456789012';
 $channelTwo = 'UCabcdefghijklmnopqrstuv';
@@ -109,12 +110,26 @@ if (!$store->write(
     $fail('Unable to create fixture permanent pool.');
 }
 
+if (!$videoStats->recordView('AlphaVid001', 60, 100, $channelOne)) {
+    $fail('Unable to create Alpha view fixture.');
+}
+if (!$videoStats->recordView('BravoVid002', 60, 100, $channelOne)
+    || !$videoStats->recordView('BravoVid002', 80, 100, $channelOne)
+    || !$videoStats->recordView('BravoVid002', 95, 100, $channelOne)) {
+    $fail('Unable to create Bravo view fixtures.');
+}
+if (!$videoStats->recordView('CharlieV003', 70, 100, $channelTwo)
+    || !$videoStats->recordView('CharlieV003', 90, 100, $channelTwo)) {
+    $fail('Unable to create Charlie view fixtures.');
+}
+
 $single = plugin_getiteminfo_videos('BravoVid002', '*');
 if (!is_array($single) ||
     !isset($single['id'], $single['title'], $single['url'], $single['date-modified']) ||
     $single['id'] !== 'BravoVid002' ||
     $single['title'] !== 'Bravo video' ||
-    $single['date-modified'] !== '2024-07-01T10:00:00Z') {
+    $single['date-modified'] !== '2024-07-01T10:00:00Z' ||
+    !isset($single['hits']) || (int) $single['hits'] !== 3) {
     $fail('Single-item Item Info contract failed.');
 }
 
@@ -158,6 +173,23 @@ foreach ($created as $record) {
         !isset($record['id'], $record['title'])) {
         $fail('Collection field filtering failed.');
     }
+}
+
+$popular = plugin_getiteminfo_videos(
+    '*',
+    'id,hits',
+    0,
+    array('limit' => 10, 'order' => 'hits-desc')
+);
+$popularIds = videos_item_info_ids($popular);
+if ($popularIds !== array('BravoVid002', 'CharlieV003', 'AlphaVid001')) {
+    $fail('Item Info hits-desc ordering failed: ' . implode(', ', $popularIds));
+}
+if (!isset($popular[0]['hits'], $popular[1]['hits'], $popular[2]['hits'])
+    || (int) $popular[0]['hits'] !== 3
+    || (int) $popular[1]['hits'] !== 2
+    || (int) $popular[2]['hits'] !== 1) {
+    $fail('Item Info normalized hits values are incorrect.');
 }
 
 $limited = plugin_getiteminfo_videos(
@@ -316,7 +348,7 @@ if ($originalVideosConf === null) {
 }
 videos_item_info_remove_tree($tempRoot);
 
-echo 'Videos Item Info/feed contract: OK (single item, fields, since, limit, ordering, syndication, moderation visibility)'
+echo 'Videos Item Info/feed contract: OK (single item, fields, hits, hits-desc, since, limit, ordering, syndication, moderation visibility)'
     . PHP_EOL;
 
 function videos_item_info_ids($records)
