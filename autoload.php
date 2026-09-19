@@ -29,6 +29,8 @@ function VIDEOS_registerAutoloader()
  */
 function VIDEOS_autoloadClass($className)
 {
+    global $_CONF;
+
     $className = (string) $className;
     if (strpos($className, 'Videos_') !== 0) {
         return;
