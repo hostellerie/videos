@@ -1,6 +1,6 @@
 # Videos plugin for Geeklog
 
-Development version: **0.19.0**
+Development version: **0.20.0**
 
 Videos is a Geeklog plugin that builds and maintains a public video catalogue from YouTube Data API v3 while keeping editorial control, local ratings, recommendations, moderation, SEO metadata and persistent JSON data on the Geeklog site.
 
@@ -11,6 +11,39 @@ Videos is a Geeklog plugin that builds and maintains a public video catalogue fr
 - YouTube Data API v3
 - No plugin-owned database table
 - Persistent plugin data stored outside Geeklog `path_data` since Videos 0.17.1
+
+## Videos 0.20.0
+
+Videos 0.20.0 consolidates the plugin architecture while preserving Geeklog 2.1.1–2.2.2 and PHP 5.6–8.1 compatibility.
+
+Main changes include:
+
+- PHP 5.6-compatible class autoloading;
+- provider abstraction for explicit YouTube synchronization;
+- local-only public catalogue rendering with no visitor-triggered provider calls;
+- native Geeklog templates for the public catalogue;
+- schema-driven configuration creation;
+- strengthened storage, lifecycle, search, sitemap and syndication validation;
+- shared provider-neutral capability discovery for Agent, Hub, Eclipse and future consumers;
+- read-only `dashboard.summary`, channel, ranking and provider-status services;
+- CI validation of the shared interoperability contract and release archive.
+
+The shared capability declaration currently advertises:
+
+```text
+content.read
+content.collection
+content.search
+content.url.resolve
+content.lifecycle
+content.syndication
+dashboard.summary
+videos.channels.read
+videos.rankings.read
+videos.provider.status
+```
+
+Videos does not advertise `content.popular` yet because the generic Item Info collection does not currently implement the shared `hits-desc` contract. Video/channel rankings remain available through the dedicated bounded ranking service.
 
 ## Videos 0.19.0
 
@@ -226,6 +259,8 @@ The plugin provides:
 - Geeklog lifecycle events for meaningful editorial changes.
 
 This allows compatible plugins such as Hello, Hub or IndexNow to consume Videos content without Videos-specific SQL or routing logic.
+
+Videos also exposes `plugin_getcapabilities_videos()` and provider-owned read-only services through Geeklog's service layer. Agent can discover and normalize Videos resources, Eclipse can request `dashboard.summary` without querying Videos storage, and Hub can reuse the same content, lifecycle, channel and ranking contracts without creating a Hub-specific API.
 
 ## Autotags
 
