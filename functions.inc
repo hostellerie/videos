@@ -14,11 +14,9 @@ VIDEOS_registerAutoloader();
 
 define('VIDEOS_PLUGIN_NAME', 'videos');
 
-$videosLanguage = $_CONF['path'] . 'plugins/videos/language/'
-    . $_CONF['language'] . '.php';
+$videosLanguage = __DIR__ . '/language/' . $_CONF['language'] . '.php';
 if (!file_exists($videosLanguage)) {
-    $videosLanguage = $_CONF['path']
-        . 'plugins/videos/language/english.php';
+    $videosLanguage = __DIR__ . '/language/english.php';
 }
 require_once $videosLanguage;
 
@@ -131,7 +129,7 @@ function plugin_upgrade_videos()
         return 3002;
     }
 
-    require_once $_CONF['path'] . 'plugins/videos/install_updates.php';
+    require_once __DIR__ . '/install_updates.php';
     if (!videos_apply_updates($installedVersion, $codeVersion)) {
         COM_errorLog(
             "Videos upgrade: no valid migration path from '"
