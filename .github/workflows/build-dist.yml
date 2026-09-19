@@ -9,6 +9,10 @@ on:
     paths-ignore:
       - 'dist/**'
 
+concurrency:
+  group: videos-build-dist-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
