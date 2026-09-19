@@ -62,7 +62,7 @@ The maintained upgrade chain is:
 0.17.1 -> 0.18.0 -> 0.19.0 -> 0.20.0
 ```
 
-Persistent storage migration remains explicit, site-scoped, restartable and non-destructive. Ordinary runtime bootstrap does not move persistent data.
+Persistent storage migration remains explicit, site-scoped, restartable and non-destructive. Ordinary runtime bootstrap does not move persistent data. The `0.19.0 -> 0.20.0` step is explicitly registered and intentionally performs no data/configuration migration.
 
 ## Release gate
 
