@@ -9,6 +9,7 @@ $requiredCapabilities = array(
     'content.read',
     'content.collection',
     'content.search',
+    'content.popular',
     'content.url.resolve',
     'content.lifecycle',
     'content.syndication',
@@ -23,11 +24,6 @@ foreach ($requiredCapabilities as $capability) {
         fwrite(STDERR, 'Missing capability: ' . $capability . PHP_EOL);
         exit(1);
     }
-}
-
-if (strpos($interoperability, "'content.popular'") !== false) {
-    fwrite(STDERR, 'content.popular must not be advertised before hits-desc collection support exists.' . PHP_EOL);
-    exit(1);
 }
 
 $requiredServices = array(
