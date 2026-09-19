@@ -22,6 +22,7 @@ require_once $videosLanguage;
 
 require_once $_CONF['path'] . 'plugins/videos/geeklog_integration.php';
 require_once $_CONF['path'] . 'plugins/videos/interoperability.php';
+require_once $_CONF['path'] . 'plugins/videos/services.inc.php';
 
 $_VIDEOS_CONF = array();
 if (class_exists('config')) {
