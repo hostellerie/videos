@@ -111,8 +111,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "plugins/videos/geeklog_integration.php" functions.inc
-          grep -Fq "plugins/videos/interoperability.php" functions.inc
+          grep -Fq "require_once __DIR__ . '/geeklog_integration.php';" functions.inc
+          grep -Fq "require_once __DIR__ . '/interoperability.php';" functions.inc
           grep -Fq 'function plugin_getfeednames_videos()' interoperability.php
           grep -Fq 'function plugin_getfeedcontent_videos(' interoperability.php
           grep -Fq "'config.videos.tab_seo'" autoinstall.php
