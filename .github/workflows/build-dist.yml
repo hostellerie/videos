@@ -143,6 +143,7 @@ jobs:
           php tools/test-provider-contract.php
           php tools/test-public-local-only.php
           php tools/test-integration-load.php
+          php tools/test-capability-contract.php
 
       - name: Lint PHP sources
         id: lint
@@ -212,6 +213,8 @@ jobs:
           unzip -p "dist/${ARCHIVE}" videos/functions.inc | grep -Fq 'plugins/videos/interoperability.php'
           unzip -p "dist/${ARCHIVE}" videos/interoperability.php | grep -Fq 'function plugin_getfeednames_videos()'
           unzip -p "dist/${ARCHIVE}" videos/interoperability.php | grep -Fq 'function plugin_getfeedcontent_videos('
+          unzip -p "dist/${ARCHIVE}" videos/interoperability.php | grep -Fq 'function plugin_getcapabilities_videos()'
+          unzip -p "dist/${ARCHIVE}" videos/services.inc.php | grep -Fq 'function service_dashboard_summary_videos('
           unzip -p "dist/${ARCHIVE}" videos/autoinstall.php | grep -Fq "'config.videos.tab_seo'"
           if [ "${GITHUB_REF_NAME}" = '0.20.0' ]; then
             unzip -p "dist/${ARCHIVE}" videos/feed_update.php | grep -Fq 'function plugin_feedupdatecheck_videos('
