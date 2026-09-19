@@ -67,6 +67,9 @@ jobs:
       - name: Test public runtime stays local-only
         run: php tools/test-public-local-only.php
 
+      - name: Test shared capability contract
+        run: php tools/test-capability-contract.php
+
   geeklog-core-contracts:
     name: Geeklog ${{ matrix.label }} core API contracts
     runs-on: ubuntu-latest
@@ -110,6 +113,11 @@ jobs:
           grep -Fq 'function plugin_getfeedcontent_videos(' interoperability.php
           grep -Fq 'function plugin_getiteminfo_videos(' interoperability.php
           grep -Fq 'function plugin_autotags_videos(' interoperability.php
+          grep -Fq 'function plugin_getcapabilities_videos()' interoperability.php
+          grep -Fq 'function service_dashboard_summary_videos(' services.inc.php
+          grep -Fq 'function service_channels_read_videos(' services.inc.php
+          grep -Fq 'function service_rankings_read_videos(' services.inc.php
+          grep -Fq 'function service_provider_status_videos(' services.inc.php
           grep -Fq 'function plugin_searchtypes_videos()' geeklog_integration.php
           grep -Fq 'function plugin_dopluginsearch_videos(' geeklog_integration.php
 
