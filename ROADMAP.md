@@ -71,6 +71,46 @@ Completed so far on branch `0.20.0`:
 - these interoperability tests pass across PHP 5.6, 7.4 and 8.1;
 - the 0.20 distribution workflow derives the archive version/minimum Geeklog version from `version.php`;
 - the installable archive is rebuilt automatically as `videos_0.20.0_2.1.1.zip` and is checked for the provider, feed and template architecture before commit.
+- `plugin_getcapabilities_videos()` now declares the shared provider-neutral content/service capabilities defined by the memorandum;
+- Videos exposes read-only `dashboard_summary`, `channels_read`, `rankings_read` and `provider_status` services for Agent, Eclipse, Hub and future consumers;
+- the Eclipse-facing dashboard contract is provider-owned, permission-checked with `videos.admin`, and does not require Eclipse-specific code in Videos;
+- Agent and Hub can reuse Item Info, collection, URL, lifecycle, syndication and specialized read services without accessing Videos JSON storage directly;
+- `content.popular` is intentionally not advertised until generic Item Info supports the shared `hits-desc` contract;
+- CI now validates the shared capability declaration and verifies that the release archive contains the interoperability services.
+
+### P1 — shared Agent / Eclipse / Hub capabilities — completed
+
+Videos follows the shared capability contract from the memorandum instead of exposing consumer-specific APIs.
+
+Current declaration:
+
+```text
+roles: content, service
+
+content.read
+content.collection
+content.search
+content.url.resolve
+content.lifecycle
+content.syndication
+dashboard.summary
+videos.channels.read
+videos.rankings.read
+videos.provider.status
+```
+
+Implementation boundaries:
+
+- normalized content stays in `plugin_getiteminfo_videos()`;
+- content identity and URLs stay in the native Item Info / URL callbacks;
+- save/delete lifecycle remains provider-owned;
+- `dashboard.summary` is an internal, read-only, `videos.admin`-protected service;
+- channel and ranking reads are bounded and local-only;
+- provider status describes availability without exposing secrets or triggering external synchronization;
+- no capability requires Agent, Eclipse or Hub to be installed;
+- consumers must not query Videos private JSON storage.
+
+Future additions must be declared only when the underlying behavior exists and is testable.
 
 ### P1 — move YouTube refresh work out of visitor requests — completed
 
