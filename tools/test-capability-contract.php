@@ -39,7 +39,7 @@ foreach ($requiredServices as $service) {
     }
 }
 
-if (strpos($functions, "plugins/videos/services.inc.php") === false) {
+if (strpos($functions, "require_once __DIR__ . '/services.inc.php';") === false) {
     fwrite(STDERR, 'functions.inc does not load services.inc.php.' . PHP_EOL);
     exit(1);
 }
