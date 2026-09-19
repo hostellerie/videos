@@ -41,5 +41,9 @@ if (!function_exists('plugin_getcapabilities_videos')) {
     fwrite(STDERR, "Videos interoperability callbacks are unavailable after scoped load.\n");
     exit(1);
 }
+if (!class_exists('Videos_Bootstrap')) {
+    fwrite(STDERR, "Videos_Bootstrap did not autoload from Core function scope.\n");
+    exit(1);
+}
 
-echo "Videos scoped Core include: OK" . PHP_EOL;
+echo "Videos scoped Core include and autoload: OK" . PHP_EOL;
