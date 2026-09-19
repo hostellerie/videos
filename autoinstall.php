@@ -1,5 +1,7 @@
 <?php
 
+global $_CONF, $_TABLES, $_DB_table_prefix, $_PLUGINS, $_VIDEOS_CONF;
+
 if (!isset($_CONF)) {
     die('This file cannot be used on its own.');
 }
