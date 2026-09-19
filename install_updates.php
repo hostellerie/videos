@@ -2,7 +2,7 @@
 
 global $_CONF, $_TABLES, $_DB_table_prefix, $_VIDEOS_CONF;
 
-if (!isset($_CONF)) {
+if (!isset($GLOBALS['_CONF'])) {
     die('This file cannot be used on its own.');
 }
 
