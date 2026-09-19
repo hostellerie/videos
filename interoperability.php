@@ -140,6 +140,10 @@ function VIDEOS_itemInfoRecord($videoId, $bootstrap, $poolItem = array())
     }
     $created = !empty($snippet['publishedAt']) ? (string) $snippet['publishedAt'] : '';
     $modified = !empty($poolItem['admitted_at']) ? (string) $poolItem['admitted_at'] : $created;
+    $engagement = new Videos_VideoStats($bootstrap->getStore());
+    $engagementStats = $engagement->get($videoId);
+    $hits = isset($engagementStats['view_count'])
+        ? max(0, (int) $engagementStats['view_count']) : 0;
     return array(
         'id' => $videoId,
         'type' => 'videos',
@@ -152,7 +156,8 @@ function VIDEOS_itemInfoRecord($videoId, $bootstrap, $poolItem = array())
         'date-created' => $created,
         'date-modified' => $modified,
         'uid' => 0,
-        'author' => $channel
+        'author' => $channel,
+        'hits' => $hits
     );
 }
 
@@ -274,6 +279,15 @@ function plugin_getiteminfo_videos($id, $what, $uid = 0, $options = array())
         $records[] = $record;
     }
     usort($records, function ($left, $right) use ($order) {
+        if ($order === 'hits-desc') {
+            $leftHits = isset($left['hits']) ? (int) $left['hits'] : 0;
+            $rightHits = isset($right['hits']) ? (int) $right['hits'] : 0;
+            if ($leftHits === $rightHits) {
+                return strcmp($left['id'], $right['id']);
+            }
+            return $leftHits > $rightHits ? -1 : 1;
+        }
+
         $field = $order === 'created-desc' ? 'date-created' : 'date-modified';
         $leftTime = !empty($left[$field]) ? strtotime($left[$field]) : 0;
         $rightTime = !empty($right[$field]) ? strtotime($right[$field]) : 0;
@@ -467,6 +481,7 @@ function plugin_getcapabilities_videos()
             'content.read',
             'content.collection',
             'content.search',
+            'content.popular',
             'content.url.resolve',
             'content.lifecycle',
             'content.syndication',
@@ -488,7 +503,7 @@ function VIDEOS_interopCapabilities()
         'content_info' => true,
         'collections' => true,
         'content_search' => true,
-        'content_popular' => false,
+        'content_popular' => true,
         'item_saved' => true,
         'item_deleted' => true,
         'id_to_url' => true,
