@@ -75,7 +75,7 @@ Completed so far on branch `0.20.0`:
 - Videos exposes read-only `dashboard_summary`, `channels_read`, `rankings_read` and `provider_status` services for Agent, Eclipse, Hub and future consumers;
 - the Eclipse-facing dashboard contract is provider-owned, permission-checked with `videos.admin`, and does not require Eclipse-specific code in Videos;
 - Agent and Hub can reuse Item Info, collection, URL, lifecycle, syndication and specialized read services without accessing Videos JSON storage directly;
-- `content.popular` is intentionally not advertised until generic Item Info supports the shared `hits-desc` contract;
+- `content.popular` is implemented through normalized local qualified-view `hits` and Item Info `order=hits-desc`;
 - CI now validates the shared capability declaration and verifies that the release archive contains the interoperability services.
 
 ### P1 — shared Agent / Eclipse / Hub capabilities — completed
@@ -90,6 +90,7 @@ roles: content, service
 content.read
 content.collection
 content.search
+content.popular
 content.url.resolve
 content.lifecycle
 content.syndication
