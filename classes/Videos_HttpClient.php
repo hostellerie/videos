@@ -1,6 +1,6 @@
 <?php
 
-if (!isset($_CONF)) {
+if (!isset($GLOBALS['_CONF'])) {
     die('This file cannot be used on its own.');
 }
 
