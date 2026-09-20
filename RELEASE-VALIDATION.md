@@ -242,3 +242,7 @@ Validate that:
 6. no release-blocking regression remains in storage, administration, public rendering, search, syndication, sitemap fallback, lifecycle interoperability or shared Agent/Eclipse/Hub capability exposure.
 
 Until those manual checks are completed, `VIDEOS_RELEASE_STATUS` should remain `development`.
+
+### Final integration validation
+
+Eclipse dashboard consumption of Videos `dashboard.summary` data has been validated on a real Geeklog installation. This completes the final Agent/Eclipse/Hub interoperability smoke-test gate for 0.20.0.
