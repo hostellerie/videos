@@ -16,7 +16,7 @@ if (!defined('VIDEOS_MIN_PHP_VERSION')) {
     define('VIDEOS_MIN_PHP_VERSION', '5.6.0');
 }
 if (!defined('VIDEOS_RELEASE_STATUS')) {
-    define('VIDEOS_RELEASE_STATUS', 'development');
+    define('VIDEOS_RELEASE_STATUS', 'stable');
 }
 
 require_once __DIR__ . '/interoperability.php';
