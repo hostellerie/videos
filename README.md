@@ -1,6 +1,6 @@
 # Videos plugin for Geeklog
 
-Development version: **0.20.0**
+Current stable version: **0.20.0**
 
 Videos is a Geeklog plugin that builds and maintains a public video catalogue from YouTube Data API v3 while keeping editorial control, local ratings, recommendations, moderation, SEO metadata and persistent JSON data on the Geeklog site.
 
