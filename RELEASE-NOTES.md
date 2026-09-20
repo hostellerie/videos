@@ -72,5 +72,5 @@ Before tagging 0.20.0 stable:
 - fresh install must pass on Geeklog 2.1.1/PHP 5.6 and Geeklog 2.2.2/PHP 8.1;
 - upgrade from 0.19.0 must pass on both reference stacks;
 - shared-files multisite isolation must pass on both reference stacks;
-- Agent/Eclipse/Hub interoperability services must be smoke-tested on a real Geeklog installation;
-- `VIDEOS_RELEASE_STATUS` must then be changed from `development` to `stable` and the final archive rebuilt.
+- Agent/Eclipse/Hub interoperability services have been smoke-tested on a real Geeklog installation, including Eclipse dashboard consumption of Videos data;
+- `VIDEOS_RELEASE_STATUS` is `stable` and the final archive is rebuilt from the release branch.
