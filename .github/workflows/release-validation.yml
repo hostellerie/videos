@@ -5,12 +5,18 @@ on:
   push:
     branches:
       - 0.19.0
+      - 0.20.0
     paths:
       - '**.php'
       - '**.inc'
       - 'language/**'
+      - 'templates/**'
       - 'tools/**'
       - '.github/workflows/release-validation.yml'
+
+concurrency:
+  group: videos-release-validation-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -52,6 +58,27 @@ jobs:
 
       - name: Test explicit storage migration
         run: php tools/test-storage-migration.php
+
+      - name: Test combined integration loading
+        run: php tools/test-integration-load.php
+
+      - name: Test Core function-scope plugin loading
+        run: php tools/test-function-scope-load.php
+
+      - name: Test scope-independent bootstrap guards
+        run: php tools/test-global-bootstrap-guards.php
+
+      - name: Test Videos class autoloading
+        run: php tools/test-autoload.php
+
+      - name: Test external provider contract
+        run: php tools/test-provider-contract.php
+
+      - name: Test public runtime stays local-only
+        run: php tools/test-public-local-only.php
+
+      - name: Test shared capability contract
+        run: php tools/test-capability-contract.php
 
   geeklog-core-contracts:
     name: Geeklog ${{ matrix.label }} core API contracts
@@ -96,6 +123,11 @@ jobs:
           grep -Fq 'function plugin_getfeedcontent_videos(' interoperability.php
           grep -Fq 'function plugin_getiteminfo_videos(' interoperability.php
           grep -Fq 'function plugin_autotags_videos(' interoperability.php
+          grep -Fq 'function plugin_getcapabilities_videos()' interoperability.php
+          grep -Fq 'function service_dashboard_summary_videos(' services.inc.php
+          grep -Fq 'function service_channels_read_videos(' services.inc.php
+          grep -Fq 'function service_rankings_read_videos(' services.inc.php
+          grep -Fq 'function service_provider_status_videos(' services.inc.php
           grep -Fq 'function plugin_searchtypes_videos()' geeklog_integration.php
           grep -Fq 'function plugin_dopluginsearch_videos(' geeklog_integration.php
 
@@ -112,8 +144,10 @@ jobs:
           set -euo pipefail
           grep -Fq "define('VIDEOS_MIN_GEEKLOG_VERSION', '2.1.1')" version.php
           grep -Fq "define('VIDEOS_MIN_PHP_VERSION', '5.6.0')" version.php
-          grep -Fq "plugins/videos/geeklog_integration.php" functions.inc
-          grep -Fq "plugins/videos/interoperability.php" functions.inc
+          grep -Fq "require_once __DIR__ . '/autoload.php';" functions.inc
+          grep -Fq "VIDEOS_registerAutoloader();" functions.inc
+          grep -Fq "require_once __DIR__ . '/geeklog_integration.php';" functions.inc
+          grep -Fq "require_once __DIR__ . '/interoperability.php';" functions.inc
 
       - name: Validate native Geeklog callbacks
         shell: bash
@@ -142,6 +176,23 @@ jobs:
           fi
           grep -Fq "function_exists('PLG_itemDeleted')" classes/Videos_Moderation.php
           grep -Fq "function_exists('PLG_itemDeleted')" classes/Videos_PermanentPool.php
+
+      - name: Validate catalogue template presentation boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f classes/Videos_TemplateRenderer.php
+          test -f classes/Videos_CatalogueRenderer.php
+          test -f templates/default/catalogue.thtml
+          test -f templates/default/video-card.thtml
+          grep -Fq 'new Videos_CatalogueRenderer(' public_html/index.php
+          grep -Fq "Videos_TemplateRenderer::render('video-card.thtml'" classes/Videos_CatalogueRenderer.php
+          grep -Fq "'catalogue.thtml'" classes/Videos_CatalogueRenderer.php
+          grep -Fq '{grid}' templates/default/catalogue.thtml
+          if grep -Fq '<article class="videos-card"' public_html/index.php; then
+            echo 'Public catalogue controller still renders video-card HTML directly.' >&2
+            exit 1
+          fi
 
       - name: Validate install and uninstall feature symmetry
         shell: bash

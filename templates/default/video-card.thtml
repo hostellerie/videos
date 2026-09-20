@@ -1,0 +1,10 @@
+<article class="videos-card">
+    <a href="{video_url}">{thumbnail}</a>
+    <div class="videos-card-content">
+        <h2><a href="{video_url}">{title}</a></h2>
+        {channel}
+        {duration}
+        {rating}
+        {badges}
+    </div>
+</article>

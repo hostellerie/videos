@@ -1,6 +1,8 @@
 <?php
 
-if (!isset($_CONF)) {
+global $_CONF, $_TABLES, $_DB_table_prefix, $_VIDEOS_CONF;
+
+if (!isset($GLOBALS['_CONF'])) {
     die('This file cannot be used on its own.');
 }
 
@@ -246,8 +248,19 @@ $GLOBALS['VIDEOS_UPDATES'] = array(
     '0.18.0' => array(
         'next' => '0.19.0',
         'callback' => 'videos_update_0_18_0_to_0_19_0'
+    ),
+    '0.19.0' => array(
+        'next' => '0.20.0',
+        'callback' => 'videos_update_0_19_0_to_0_20_0'
     )
 );
+
+function videos_update_0_19_0_to_0_20_0()
+{
+    // 0.20.0 consolidates architecture and interoperability only.
+    // No SQL, configuration or persistent-data migration is required.
+    return true;
+}
 
 function videos_update_0_18_0_to_0_19_0()
 {

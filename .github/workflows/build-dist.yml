@@ -5,8 +5,13 @@ on:
   push:
     branches:
       - 0.19.0
+      - 0.20.0
     paths-ignore:
       - 'dist/**'
+
+concurrency:
+  group: videos-build-dist-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -106,8 +111,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq "plugins/videos/geeklog_integration.php" functions.inc
-          grep -Fq "plugins/videos/interoperability.php" functions.inc
+          grep -Fq "require_once __DIR__ . '/geeklog_integration.php';" functions.inc
+          grep -Fq "require_once __DIR__ . '/interoperability.php';" functions.inc
           grep -Fq 'function plugin_getfeednames_videos()' interoperability.php
           grep -Fq 'function plugin_getfeedcontent_videos(' interoperability.php
           grep -Fq "'config.videos.tab_seo'" autoinstall.php
@@ -124,6 +129,25 @@ jobs:
               raise SystemExit('Uninstall misses features: ' + ', '.join(missing))
           print(f'Validated uninstall symmetry for {len(installed)} features.')
           PY
+
+      - name: Validate 0.20 architecture
+        if: github.ref_name == '0.20.0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "require_once __DIR__ . '/feed_update.php';" version.php
+          grep -Fq 'function plugin_feedupdatecheck_videos(' feed_update.php
+          grep -Fq 'class Videos_ProviderFactory' classes/Videos_ProviderFactory.php
+          grep -Fq 'class Videos_TemplateRenderer' classes/Videos_TemplateRenderer.php
+          grep -Fq 'class Videos_CatalogueRenderer' classes/Videos_CatalogueRenderer.php
+          grep -Fq 'new Videos_CatalogueRenderer(' public_html/index.php
+          test -s templates/default/catalogue.thtml
+          test -s templates/default/video-card.thtml
+          grep -Fq '{grid}' templates/default/catalogue.thtml
+          php tools/test-provider-contract.php
+          php tools/test-public-local-only.php
+          php tools/test-integration-load.php
+          php tools/test-capability-contract.php
 
       - name: Lint PHP sources
         id: lint
@@ -158,7 +182,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ARCHIVE="videos_0.19.0_2.1.1.zip"
+          VERSION=$(sed -n "s/.*define('VIDEOS_PLUGIN_VERSION', '\([^']*\)').*/\1/p" version.php | head -n 1)
+          MIN_GL=$(sed -n "s/.*define('VIDEOS_MIN_GEEKLOG_VERSION', '\([^']*\)').*/\1/p" version.php | head -n 1)
+          if [ -z "$VERSION" ] || [ -z "$MIN_GL" ]; then
+            echo 'Unable to determine Videos version or minimum Geeklog version.' >&2
+            exit 1
+          fi
+          ARCHIVE="videos_${VERSION}_${MIN_GL}.zip"
           rm -rf build
           mkdir -p build/videos dist
           rm -f dist/videos_*.zip
@@ -184,10 +214,21 @@ jobs:
           cd ..
           unzip -t "dist/${ARCHIVE}"
           unzip -p "dist/${ARCHIVE}" videos/functions.inc | grep -Fq 'function VIDEOS_adminPageOpen'
-          unzip -p "dist/${ARCHIVE}" videos/functions.inc | grep -Fq 'plugins/videos/interoperability.php'
+          unzip -p "dist/${ARCHIVE}" videos/functions.inc | grep -Fq "require_once __DIR__ . '/interoperability.php';"
           unzip -p "dist/${ARCHIVE}" videos/interoperability.php | grep -Fq 'function plugin_getfeednames_videos()'
           unzip -p "dist/${ARCHIVE}" videos/interoperability.php | grep -Fq 'function plugin_getfeedcontent_videos('
+          unzip -p "dist/${ARCHIVE}" videos/interoperability.php | grep -Fq 'function plugin_getcapabilities_videos()'
+          unzip -p "dist/${ARCHIVE}" videos/services.inc.php | grep -Fq 'function service_dashboard_summary_videos('
           unzip -p "dist/${ARCHIVE}" videos/autoinstall.php | grep -Fq "'config.videos.tab_seo'"
+          if [ "${GITHUB_REF_NAME}" = '0.20.0' ]; then
+            unzip -p "dist/${ARCHIVE}" videos/feed_update.php | grep -Fq 'function plugin_feedupdatecheck_videos('
+            unzip -p "dist/${ARCHIVE}" videos/classes/Videos_ProviderFactory.php | grep -Fq 'class Videos_ProviderFactory'
+            unzip -p "dist/${ARCHIVE}" videos/classes/Videos_TemplateRenderer.php | grep -Fq 'class Videos_TemplateRenderer'
+            unzip -p "dist/${ARCHIVE}" videos/classes/Videos_CatalogueRenderer.php | grep -Fq 'class Videos_CatalogueRenderer'
+            unzip -p "dist/${ARCHIVE}" videos/public_html/index.php | grep -Fq 'new Videos_CatalogueRenderer('
+            unzip -p "dist/${ARCHIVE}" videos/templates/default/catalogue.thtml | grep -Fq '{grid}'
+            unzip -p "dist/${ARCHIVE}" videos/templates/default/video-card.thtml | grep -Fq '{video_url}'
+          fi
           if unzip -p "dist/${ARCHIVE}" videos/admin/actions.php | grep -Eq 'text_[0-9a-f]{12}|VIDEOS_adminText\('; then
             echo 'Legacy admin language reference found in archive.' >&2
             exit 1
@@ -197,11 +238,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          VERSION=$(sed -n "s/.*define('VIDEOS_PLUGIN_VERSION', '\([^']*\)').*/\1/p" version.php | head -n 1)
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add dist
           if git diff --cached --quiet; then
             exit 0
           fi
-          git commit -m "Rebuild Videos 0.19.0 archive"
+          git commit -m "Rebuild Videos ${VERSION} archive"
           git push origin "HEAD:${GITHUB_REF_NAME}"

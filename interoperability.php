@@ -1,6 +1,8 @@
 <?php
 
-if (!isset($_CONF)) {
+global $_CONF, $_TABLES, $_DB_table_prefix, $_PLUGINS, $_VIDEOS_CONF;
+
+if (!isset($GLOBALS['_CONF'])) {
     die('This file cannot be used on its own.');
 }
 
@@ -140,6 +142,10 @@ function VIDEOS_itemInfoRecord($videoId, $bootstrap, $poolItem = array())
     }
     $created = !empty($snippet['publishedAt']) ? (string) $snippet['publishedAt'] : '';
     $modified = !empty($poolItem['admitted_at']) ? (string) $poolItem['admitted_at'] : $created;
+    $engagement = new Videos_VideoStats($bootstrap->getStore());
+    $engagementStats = $engagement->get($videoId);
+    $hits = isset($engagementStats['view_count'])
+        ? max(0, (int) $engagementStats['view_count']) : 0;
     return array(
         'id' => $videoId,
         'type' => 'videos',
@@ -152,7 +158,8 @@ function VIDEOS_itemInfoRecord($videoId, $bootstrap, $poolItem = array())
         'date-created' => $created,
         'date-modified' => $modified,
         'uid' => 0,
-        'author' => $channel
+        'author' => $channel,
+        'hits' => $hits
     );
 }
 
@@ -274,6 +281,15 @@ function plugin_getiteminfo_videos($id, $what, $uid = 0, $options = array())
         $records[] = $record;
     }
     usort($records, function ($left, $right) use ($order) {
+        if ($order === 'hits-desc') {
+            $leftHits = isset($left['hits']) ? (int) $left['hits'] : 0;
+            $rightHits = isset($right['hits']) ? (int) $right['hits'] : 0;
+            if ($leftHits === $rightHits) {
+                return strcmp($left['id'], $right['id']);
+            }
+            return $leftHits > $rightHits ? -1 : 1;
+        }
+
         $field = $order === 'created-desc' ? 'date-created' : 'date-modified';
         $leftTime = !empty($left[$field]) ? strtotime($left[$field]) : 0;
         $rightTime = !empty($right[$field]) ? strtotime($right[$field]) : 0;
@@ -450,4 +466,61 @@ function plugin_autotags_videos($op, $content = '', $autotag = '')
         $replacement .= '<span>' . $safeTitle . '</span></a></article>';
     }
     return str_replace($autotag['tagstr'], $replacement, $content);
+}
+
+
+/**
+ * Advertise provider-neutral Videos capabilities for Agent, Hub, Eclipse and
+ * other consumers. The declaration is descriptive only and never grants
+ * authorization.
+ */
+function plugin_getcapabilities_videos()
+{
+    return array(
+        'schema' => 1,
+        'roles' => array('content', 'service'),
+        'capabilities' => array(
+            'content.read',
+            'content.collection',
+            'content.search',
+            'content.popular',
+            'content.url.resolve',
+            'content.lifecycle',
+            'content.syndication',
+            'dashboard.summary',
+            'videos.channels.read',
+            'videos.rankings.read',
+            'videos.provider.status'
+        )
+    );
+}
+
+/**
+ * Compact compatibility map for consumers that predate the shared capability
+ * declaration. New consumers should prefer plugin_getcapabilities_videos().
+ */
+function VIDEOS_interopCapabilities()
+{
+    return array(
+        'content_info' => true,
+        'collections' => true,
+        'content_search' => true,
+        'content_popular' => true,
+        'item_saved' => true,
+        'item_deleted' => true,
+        'id_to_url' => true,
+        'url_to_id' => true,
+        'content_syndication' => true,
+        'autotags' => true,
+        'php_blocks' => true,
+        'dashboard_summary' => true,
+        'channels_read' => true,
+        'rankings_read' => true,
+        'provider_status' => true,
+        'audience_metrics' => false,
+        'search_metrics' => false,
+        'query_metrics' => false,
+        'indexing_status' => false,
+        'submission_status' => false
+    );
 }

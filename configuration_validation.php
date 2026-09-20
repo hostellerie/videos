@@ -1,6 +1,8 @@
 <?php
 
-if (!isset($_CONF)) {
+global $_CONF, $_TABLES, $_DB_table_prefix, $_PLUGINS, $_VIDEOS_CONF;
+
+if (!isset($GLOBALS['_CONF'])) {
     die('This file cannot be used on its own.');
 }
 

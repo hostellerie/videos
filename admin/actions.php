@@ -287,66 +287,17 @@ function videos_actions_failure_message($store, $configuration, $prefix)
 
 function videos_actions_test_search($bootstrap, $query, $configuration)
 {
-    $store = $bootstrap->getStore();
-    $service = new Videos_YouTubeService(
-        new Videos_YouTubeClient(
-            $bootstrap->getYouTubeApiKey(),
-            isset($configuration['youtube_timeout']) ? $configuration['youtube_timeout'] : 8
-        ),
-        new Videos_Cache($store),
-        new Videos_Quota($store),
-        new Videos_Logger($store)
-    );
-    return $service->find($query, videos_actions_search_parameters($configuration));
+    return (new Videos_ExternalSync($bootstrap, $configuration))->search($query);
 }
 
 function videos_actions_seed_discovery($bootstrap, $query, $configuration)
 {
-    $store = $bootstrap->getStore();
-    $cache = new Videos_Cache($store);
-    $service = new Videos_YouTubeService(
-        new Videos_YouTubeClient(
-            $bootstrap->getYouTubeApiKey(),
-            isset($configuration['youtube_timeout']) ? $configuration['youtube_timeout'] : 8
-        ),
-        $cache,
-        new Videos_Quota($store),
-        new Videos_Logger($store)
-    );
-    return (new Videos_DiscoveryReservoir($store, $cache))->refresh(
-        $query,
-        videos_actions_search_parameters($configuration),
-        $configuration,
-        $service,
-        true
-    );
+    return (new Videos_ExternalSync($bootstrap, $configuration))->seedDiscovery($query);
 }
 
 function videos_actions_search_parameters($configuration)
 {
-    return array(
-        'max_results' => isset($configuration['youtube_max_results']) ? $configuration['youtube_max_results'] : 20,
-        'order' => 'relevance',
-        'safe_search' => isset($configuration['youtube_safe_search']) ? $configuration['youtube_safe_search'] : 'moderate',
-        'language' => isset($configuration['language']) ? $configuration['language'] : 'fr',
-        'region' => isset($configuration['region']) ? $configuration['region'] : 'FR',
-        'published_after' => '',
-        'category_id' => '',
-        'channel_id' => '',
-        'daily_search_limit' => isset($configuration['youtube_daily_search_limit']) ? $configuration['youtube_daily_search_limit'] : 20,
-        'cache_ttl' => isset($configuration['search_cache_ttl']) ? $configuration['search_cache_ttl'] : 86400,
-        'video_cache_ttl' => isset($configuration['video_cache_ttl']) ? $configuration['video_cache_ttl'] : 86400,
-        'channel_cache_ttl' => isset($configuration['channel_cache_ttl']) ? $configuration['channel_cache_ttl'] : 604800,
-        'availability_cache_ttl' => isset($configuration['availability_cache_ttl']) ? $configuration['availability_cache_ttl'] : 86400,
-        'blocked_videos' => isset($configuration['blocked_videos']) ? $configuration['blocked_videos'] : '',
-        'blocked_channels' => isset($configuration['blocked_channels']) ? $configuration['blocked_channels'] : '',
-        'allowed_channels' => isset($configuration['allowed_channels']) ? $configuration['allowed_channels'] : '',
-        'minimum_duration' => 0,
-        'maximum_duration' => 0,
-        'exclude_short_videos' => !empty($configuration['exclude_short_videos']) ? 1 : 0,
-        'short_filter_mode' => isset($configuration['short_filter_mode']) ? $configuration['short_filter_mode'] : 'probable',
-        'short_max_duration' => isset($configuration['short_max_duration']) ? $configuration['short_max_duration'] : 180
-    );
+    return Videos_ExternalSync::searchParameters($configuration);
 }
 
 function videos_admin_public_urls($store, $cache, $pool, $moderation, $ranking, $configuration)
@@ -444,51 +395,7 @@ function videos_admin_extract_video_id($input)
 
 function videos_admin_fetch_single_video($bootstrap, $cache, $videoId, $configuration)
 {
-    $quota = new Videos_Quota($bootstrap->getStore());
-    if (!$quota->reserve('videos', 500)) {
-        return false;
-    }
-    $client = new Videos_YouTubeClient(
-        $bootstrap->getYouTubeApiKey(),
-        isset($configuration['youtube_timeout']) ? $configuration['youtube_timeout'] : 8
-    );
-    $videos = $client->videos(array($videoId));
-    if (!is_array($videos) || !isset($videos[$videoId])) {
-        return false;
-    }
-    $video = $videos[$videoId];
-    $status = isset($video['status']) ? $video['status'] : array();
-    if (empty($status['embeddable']) || !isset($status['privacyStatus']) ||
-        $status['privacyStatus'] !== 'public' || Videos_VideoPolicy::excludesShortVideo($video, $configuration)) {
-        return false;
-    }
-    if (isset($video['contentDetails']['duration'])) {
-        $video['videos_duration_seconds'] = videos_admin_duration_seconds($video['contentDetails']['duration']);
-    }
-    $ttl = isset($configuration['video_cache_ttl']) ? (int) $configuration['video_cache_ttl'] : 86400;
-    if (!$cache->putVideo($videoId, $video, $ttl, 31536000)) {
-        return false;
-    }
-    $cache->putAvailability(
-        $videoId,
-        true,
-        'available',
-        isset($configuration['availability_cache_ttl']) ? (int) $configuration['availability_cache_ttl'] : 86400
-    );
-    $channelId = isset($video['snippet']['channelId']) ? $video['snippet']['channelId'] : '';
-    if (Videos_Validator::youtubeChannelId($channelId) && $quota->reserve('channels', 500)) {
-        $channels = $client->channels(array($channelId));
-        if (is_array($channels) && isset($channels[$channelId])) {
-            $cache->putChannel(
-                $channelId,
-                $channels[$channelId],
-                isset($configuration['channel_cache_ttl']) ? (int) $configuration['channel_cache_ttl'] : 604800,
-                5184000
-            );
-        }
-    }
-    $quota->recordSuccess();
-    return $video;
+    return (new Videos_ExternalSync($bootstrap, $configuration))->fetchVideo($videoId);
 }
 
 function videos_admin_duration_seconds($duration)
@@ -510,4 +417,3 @@ function videos_admin_action_form($action, $videoId, $label, $token)
         . '" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '"><button type="submit">'
         . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</button></form>';
 }
-

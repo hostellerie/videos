@@ -1,6 +1,6 @@
 <?php
 
-if (!isset($_CONF)) {
+if (!isset($GLOBALS['_CONF'])) {
     die('This file cannot be used on its own.');
 }
 
@@ -8,10 +8,15 @@ class Videos_HttpClient
 {
     private $timeout;
     private $lastError;
+    private $maximumResponseBytes;
 
-    public function __construct($timeout)
+    public function __construct($timeout, $maximumResponseBytes = 2097152)
     {
         $this->timeout = max(2, min(30, (int) $timeout));
+        $this->maximumResponseBytes = max(
+            65536,
+            min(10485760, (int) $maximumResponseBytes)
+        );
         $this->lastError = array();
     }
 
@@ -35,6 +40,13 @@ class Videos_HttpClient
         }
         if ($response === false) {
             return false;
+        }
+        if (strlen($response['body']) > $this->maximumResponseBytes) {
+            return $this->fail(
+                'response_too_large',
+                $response['status'],
+                'YouTube API response exceeded the configured size limit.'
+            );
         }
 
         $decoded = json_decode($response['body'], true);

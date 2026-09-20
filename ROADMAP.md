@@ -9,7 +9,7 @@ The objective remains to stabilize the plugin, simplify its architecture, and st
 
 ## 0.19.0 — release stabilization status
 
-Version 0.19.0 is now functionally complete and in final release validation.
+Version 0.19.0 is functionally complete.
 
 ### Completed
 
@@ -19,99 +19,165 @@ Version 0.19.0 is now functionally complete and in final release validation.
 - Shared-files multisite behavior is isolated by each site's `path_data`.
 - Save/delete lifecycle events are implemented for public item transitions.
 - Administration language keys use semantic identifiers instead of hashed `text_xxx` keys.
-- Overview, Actions, Statistics and Moderation now use a consistent administration shell and styling.
-- Native Geeklog Content Syndication support is implemented with:
-  - `plugin_getfeednames_videos()`;
-  - `plugin_getfeedcontent_videos()`;
-  - Item Info reuse;
-  - no YouTube discovery request during feed generation.
-- Install/uninstall metadata has been aligned, including configuration features such as `config.videos.tab_seo`.
+- Overview, Actions, Statistics and Moderation use a consistent administration shell and styling.
+- Native Geeklog Content Syndication support is implemented with `plugin_getfeednames_videos()` and `plugin_getfeedcontent_videos()`.
+- Install/uninstall metadata has been aligned.
 - The installable archive is generated as `videos_0.19.0_2.1.1.zip`.
-- `plugin.json` is included for current plugin metadata discovery.
-- Release status is now `stable`.
-- Manual testing has been completed on Geeklog 2.1.1 and 2.2.2, including the principal fresh-install and upgrade scenarios.
+- `plugin.json` exposes plugin identity and minimum Geeklog/PHP requirements.
+- Manual testing has been completed on Geeklog 2.1.1 and 2.2.2.
 - CI validates PHP 5.6, 7.4 and 8.1 compatibility, storage regression behavior, Geeklog integration contracts, install/uninstall consistency and administration language coverage.
-- A duplicate declaration of `plugin_getfeedcontent_videos()` between `geeklog_integration.php` and `interoperability.php` was removed. The canonical implementation is now in `interoperability.php`.
-
-### Final release safeguards
-
-The remaining 0.19.0 work is limited to release hardening rather than feature development.
-
-#### Add a combined integration-load CI test
-
-The duplicate feed callback exposed a gap in validation: individual PHP files can lint successfully while still declaring the same global callback when loaded together.
-
-Add a CI test that loads the actual integration files in the same process, at minimum:
-
-```php
-require_once 'geeklog_integration.php';
-require_once 'interoperability.php';
-```
-
-The test should fail on duplicate global Plugin API callbacks or other fatal integration-load conflicts.
-
-### Release gate
-
-0.19.0 is ready for release when:
-
-1. `Build installable Videos archive` is green on the final commit;
-2. `Validate Videos release matrix` is green on the final commit;
-3. the combined integration-load CI safeguard is added and green;
-4. no release-blocking regression remains in storage migration, administration, search, syndication, lifecycle events or packaging.
+- The duplicate `plugin_getfeedcontent_videos()` declaration was removed; the canonical implementation is in `interoperability.php`.
 
 ## 0.20.0 — architectural consolidation
 
-Version 0.20.0 should be a simplification release, not a feature race. The objective is to reduce coupling and prepare the plugin for future common Geeklog integration services.
+Version 0.20.0 is the active development branch. It is a simplification release, not a feature race. The objective is to reduce coupling and prepare the plugin for future common Geeklog integration services.
 
-### P1 — move YouTube refresh work out of visitor requests
+### Implementation status
 
-Public page requests should primarily read local state.
+Completed so far on branch `0.20.0`:
 
-**Target model**
+- version switched to `0.20.0` with release status `development`;
+- PHP 5.6-compatible class autoloader added in `autoload.php`;
+- the autoloader resolves classes relative to the plugin itself and is independent of the active Geeklog filesystem root;
+- `functions.inc` no longer eagerly requires the complete Videos class set on every request;
+- Plugin API integration files remain explicitly loaded;
+- combined integration-load test detects duplicate callback declarations and fatal load conflicts;
+- autoloader coverage test validates all `classes/Videos_*.php` files;
+- release validation workflow runs on both `0.19.0` and `0.20.0`;
+- loading/autoload tests run across PHP 5.6, 7.4 and 8.1;
+- Geeklog 2.1.1 and 2.2.2 Plugin API contract checks remain green;
+- a provider contract isolates the external video capabilities `search()`, `videos()`, `channels()` and `getLastError()`;
+- `Videos_YouTubeProvider` adapts the existing YouTube client to that provider contract;
+- `Videos_ProviderFactory` centralizes provider/service construction for explicit external synchronization paths;
+- `Videos_ExternalSync` centralizes administration search, discovery seeding and single-video synchronization;
+- administration code no longer constructs `Videos_YouTubeClient` or `Videos_YouTubeService` directly;
+- `Videos_HttpClient` enforces a bounded response size while preserving TLS verification, timeouts, host restrictions and disabled redirects;
+- the public catalogue no longer triggers YouTube requests or discovery refreshes;
+- public catalogue rendering reads exact/stale local search cache first, then compatible local cache, then the local discovery reservoir;
+- explicit discovery refresh remains an administration/maintenance responsibility;
+- `Videos_TemplateRenderer` wraps Geeklog's native template layer;
+- `Videos_CatalogueRenderer` now renders the public catalogue through `catalogue.thtml` and `video-card.thtml`;
+- `public_html/index.php` no longer contains the video-card presentation markup;
+- templates remain overridable through Geeklog's normal plugin template resolution;
+- CI enforces both the local-only public runtime and the catalogue presentation boundary;
+- `plugin_feedupdatecheck_videos()` avoids unnecessary feed regeneration when the public editorial corpus has not changed;
+- `videos_config_schema()` now drives initial Geeklog configuration creation;
+- schema/default parity and initial schema-driven installation are checked in CI;
+- real ID -> URL -> ID round-trip behavior is tested for videos, channels, catalogue and rankings;
+- `plugin_getiteminfo_videos()` is behaviorally tested for single items, field filtering, collection `*`, `since`, `limit` and ordering;
+- native Content Syndication is tested against the same local editorial corpus used by Item Info;
+- moderation visibility is behaviorally tested for blocked videos and excluded channels in both Item Info and syndication;
+- lifecycle interoperability is behaviorally tested for video block/unblock and channel exclusion through `PLG_itemSaved()` / `PLG_itemDeleted()`;
+- these interoperability tests pass across PHP 5.6, 7.4 and 8.1;
+- the 0.20 distribution workflow derives the archive version/minimum Geeklog version from `version.php`;
+- the installable archive is rebuilt automatically as `videos_0.20.0_2.1.1.zip` and is checked for the provider, feed and template architecture before commit.
+- the explicit `0.19.0 -> 0.20.0` upgrade transition is registered and tested; it is a no-op migration because 0.20.0 adds architecture/interoperability only.
+- `plugin_getcapabilities_videos()` now declares the shared provider-neutral content/service capabilities defined by the memorandum;
+- Videos exposes read-only `dashboard_summary`, `channels_read`, `rankings_read` and `provider_status` services for Agent, Eclipse, Hub and future consumers;
+- the Eclipse-facing dashboard contract is provider-owned, permission-checked with `videos.admin`, and does not require Eclipse-specific code in Videos;
+- Agent and Hub can reuse Item Info, collection, URL, lifecycle, syndication and specialized read services without accessing Videos JSON storage directly;
+- `content.popular` is implemented through normalized local qualified-view `hits` and Item Info `order=hits-desc`;
+- CI now validates the shared capability declaration and verifies that the release archive contains the interoperability services.
+
+### P1 — shared Agent / Eclipse / Hub capabilities — completed
+
+Videos follows the shared capability contract from the memorandum instead of exposing consumer-specific APIs.
+
+Current declaration:
 
 ```text
-scheduled/admin maintenance
-        -> YouTube API
+roles: content, service
+
+content.read
+content.collection
+content.search
+content.popular
+content.url.resolve
+content.lifecycle
+content.syndication
+dashboard.summary
+videos.channels.read
+videos.rankings.read
+videos.provider.status
+```
+
+Implementation boundaries:
+
+- normalized content stays in `plugin_getiteminfo_videos()`;
+- content identity and URLs stay in the native Item Info / URL callbacks;
+- save/delete lifecycle remains provider-owned;
+- `dashboard.summary` is an internal, read-only, `videos.admin`-protected service;
+- channel and ranking reads are bounded and local-only;
+- provider status describes availability without exposing secrets or triggering external synchronization;
+- no capability requires Agent, Eclipse or Hub to be installed;
+- consumers must not query Videos private JSON storage.
+
+Future additions must be declared only when the underlying behavior exists and is testable.
+
+### P1 — move YouTube refresh work out of visitor requests — completed
+
+The public catalogue now follows this model:
+
+```text
+admin / maintenance
+        -> Videos_ExternalSync
+        -> provider factory
+        -> external provider
         -> discovery reservoir / cache
 
 visitor request
-        -> local cache / rankings / editorial corpus
+        -> local search cache
+        -> compatible local cache
+        -> discovery reservoir
+        -> rankings / editorial corpus
 ```
 
-Move routine reservoir refreshes to explicit maintenance, cron/scheduled execution, or another controlled background mechanism compatible with the supported Geeklog range.
+Visitor requests no longer perform provider discovery or reservoir refresh operations.
 
-Keep manual seeding / refresh actions in administration.
+Manual seeding and explicit synchronization remain available from administration/maintenance paths.
 
-Benefits:
+Benefits enforced by CI:
 
 - predictable frontend response time;
-- fewer accidental YouTube quota spikes;
-- better resilience during provider outages;
-- clearer separation between external synchronization and public rendering.
+- no accidental YouTube quota use from catalogue visitors;
+- public rendering remains available during provider outages when local data exists;
+- clear separation between external synchronization and public rendering.
 
-### P1 — autoload plugin classes
+### P1 — autoload plugin classes — completed
 
-`functions.inc` currently loads most Videos classes on every Geeklog request.
+A PHP 5.6-compatible autoloader maps `Videos_*` classes to `classes/<ClassName>.php` using `spl_autoload_register()`.
 
-Introduce a PHP 5.6-compatible autoloader using `spl_autoload_register()` so classes are loaded only when needed.
-
-Keep `functions.inc` focused on:
+`functions.inc` remains focused on:
 
 - minimal bootstrap;
 - configuration;
 - Plugin API callbacks;
 - compatibility helpers.
 
-### P1 — introduce `.thtml` templates progressively
+CI verifies that all Videos class files are actually loadable through the autoloader.
 
-Move significant presentation markup out of long PHP string concatenations.
+### P1 — introduce `.thtml` templates progressively — catalogue completed
 
-Suggested first targets:
+The first public presentation boundary is now implemented:
+
+```text
+classes/
+    Videos_TemplateRenderer.php
+    Videos_CatalogueRenderer.php
+
+templates/default/
+    catalogue.thtml
+    video-card.thtml
+```
+
+`public_html/index.php` prepares catalogue data but delegates presentation to `Videos_CatalogueRenderer`.
+
+The templates are resolved through Geeklog's native `COM_newTemplate()` / `CTL_plugin_templatePath()` mechanism and therefore remain theme-overridable and compatible with Geeklog 2.1.1 through 2.2.2.
+
+Further template extraction should be progressive and only target meaningful presentation blocks, for example:
 
 ```text
 templates/
-    catalogue.thtml
-    video-card.thtml
     navigation.thtml
     admin/
         page.thtml
@@ -119,54 +185,62 @@ templates/
         stats-card.thtml
 ```
 
-Business logic should remain in PHP. Templates should remain theme-independent and compatible with Geeklog 2.1.1 through 2.2.2.
+Business logic must remain in PHP.
 
-### P1 — consolidate configuration definitions
+### P1 — consolidate configuration definitions — completed
 
-Configuration is currently represented in several places: defaults, initialization schema, validation, language labels and tooltips.
+Configuration remains represented by defaults plus one declarative `videos_config_schema()`.
 
-Create one declarative PHP 5.6-compatible schema that can drive as much of this behavior as practical without inventing a large framework.
+`plugin_initconfig_videos()` now creates the subgroup and then iterates the schema for tabs, fieldsets and values instead of duplicating the complete configuration definition manually.
 
-A setting definition may describe:
+CI verifies:
 
-- default;
-- Geeklog configuration type;
-- tab;
-- order;
-- select set;
-- validation bounds.
+- schema/default key parity;
+- unique settings;
+- valid fieldsets and ordering;
+- supported setting types;
+- initial configuration creation is actually schema-driven.
 
-The objective is to reduce duplication and prevent defaults, installation and validation from diverging.
+This keeps the implementation PHP 5.6-compatible and avoids introducing an additional configuration framework.
 
-### P2 — introduce a provider abstraction for external video services
+### P2 — provider abstraction for external video services — completed for 0.20 scope
 
-Do not couple the rest of the plugin directly to the current YouTube HTTP implementation.
-
-Introduce a small provider contract around the capabilities Videos actually needs, for example:
+The external boundary is now explicit:
 
 ```text
-search()
-videos()
-channels()
+Videos_ExternalSync
+    -> Videos_ProviderFactory
+        -> Videos_ProviderInterface
+            search()
+            videos()
+            channels()
+            getLastError()
+
+Videos_YouTubeProvider
+    -> Videos_YouTubeClient
 ```
 
-`Videos_YouTubeProvider` can initially wrap the existing YouTube client and service classes.
+Administration search, discovery seeding and single-video synchronization now pass through this boundary. CI fails if `admin/actions.php` directly reconstructs the legacy YouTube client/service path.
 
-This prepares Videos for the future common Geeklog Integration Layer without depending on an API that does not yet exist.
+No additional providers are planned without a demonstrated use case.
 
-Do not add provider support that has no real use case.
+### P2 — strengthen HTTP resilience — partially completed
 
-### P2 — strengthen HTTP resilience without overengineering
+Completed:
 
-For the current provider client, consider:
+- TLS verification;
+- bounded connect/request timeouts;
+- strict YouTube API host restriction;
+- redirects disabled;
+- explicit response-size limit;
+- structured local error state through `getLastError()`.
 
-- explicit response-size limits;
-- structured errors shared across provider operations;
-- narrowly-scoped retry/backoff for transient 429/5xx responses where safe;
-- provider rate-limit metadata where available;
-- no retry for functional validation errors or exhausted quota conditions.
+Still to evaluate before adding complexity:
 
-Keep TLS verification, bounded timeouts and host restrictions.
+- narrowly-scoped retry/backoff for transient 429/5xx responses;
+- provider rate-limit metadata where genuinely useful.
+
+Do not retry functional validation errors or exhausted quota conditions.
 
 ### P2 — define the boundary between JSON storage and SQL
 
@@ -185,30 +259,40 @@ SQL
 
 No migration to SQL is required for 0.20.0 unless a concrete scaling or querying problem appears.
 
-### P2 — add focused interoperability tests
+### P2 — focused interoperability tests — substantially completed
 
-Add automated or reproducible tests for:
+Behavioral coverage now includes:
 
 - `plugin_getiteminfo_videos()` single item;
-- collection `'*'` with `since`, `limit`, `order`;
+- collection `'*'` with `since`, `limit`, `modified-desc` and `created-desc`;
+- field filtering;
 - ID -> URL;
 - URL -> ID;
-- save/delete lifecycle signaling;
-- Content Syndication;
-- XMLSitemap Item Info fallback;
-- search and statistics callbacks;
-- moderation visibility rules;
-- combined loading of all Plugin API integration files.
+- rejection of invalid IDs and external-host URLs;
+- native Content Syndication using the same editorial corpus;
+- moderation visibility for blocked videos;
+- moderation visibility for excluded channels;
+- save/delete lifecycle signaling for video block/unblock;
+- lifecycle signaling and collection invalidation for channel exclusion;
+- combined loading of Plugin API integration files;
+- callback presence after combined loading;
+- autoload coverage across the supported PHP matrix;
+- external provider contract validation;
+- local-only public-runtime validation;
+- catalogue template/presentation-boundary validation;
+- configuration schema/default consistency validation.
 
-### P3 — optional feed regeneration optimization
+Remaining focused candidates:
 
-Add, if useful:
+- XMLSitemap Item Info fallback as exercised by the XMLSitemap plugin;
+- search callback behavior on a local fixture;
+- statistics callback behavior on a local fixture.
 
-```php
-plugin_feedupdatecheck_videos()
-```
+### P3 — feed regeneration optimization — completed
 
-using the latest public corpus modification timestamp.
+`plugin_feedupdatecheck_videos()` compares Geeklog's feed update state with the modification signature of the same public editorial corpus used by the Videos feed.
+
+Transient discovery/cache changes do not force unnecessary feed regeneration.
 
 ### P3 — native sitemap collector only if justified
 
@@ -244,7 +328,7 @@ Videos should continue to follow these rules throughout both releases:
 1. **Site-scoped state** — derive persistent storage and configuration from the active Geeklog site context.
 2. **Shared-files safe upgrades** — deploying new plugin files must not silently migrate every site that shares those files.
 3. **Structured interoperability first** — Item Info, lifecycle events and URL resolution remain the primary common contract.
-4. **Local rendering first** — public rendering should work from local state whenever possible.
+4. **Local rendering first** — public rendering must work from local state without depending on live provider availability.
 5. **No unnecessary duplication of Geeklog Core** — reuse search, statistics, syndication, sitemap and Plugin API mechanisms before inventing plugin-specific alternatives.
 6. **Provider-specific code stays isolated** — YouTube details should not leak throughout the plugin business model.
 7. **Persistent data is not cache** — cache cleanup must never erase editorial, moderation, privacy or user-owned state.
@@ -268,8 +352,6 @@ The following are intentionally not priorities:
 ### 0.19.0
 
 **Stabilize what already exists.**
-
-The release is intended to be safe to install, safe to upgrade, multilingual, interoperable, and predictable in shared-files multisite environments.
 
 ### 0.20.0
 

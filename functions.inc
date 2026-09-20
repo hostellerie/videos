@@ -1,56 +1,28 @@
 <?php
 
-if (!isset($_CONF)) {
+global $_CONF, $_TABLES, $_DB_table_prefix, $_PLUGINS, $_VIDEOS_CONF;
+
+if (!isset($GLOBALS['_CONF'])) {
     die('This file cannot be used on its own.');
 }
 
-require_once $_CONF['path'] . 'plugins/videos/version.php';
-require_once $_CONF['path'] . 'plugins/videos/autoinstall.php';
-require_once $_CONF['path'] . 'plugins/videos/install_defaults.php';
+require_once __DIR__ . '/version.php';
+require_once __DIR__ . '/autoinstall.php';
+require_once __DIR__ . '/install_defaults.php';
+require_once __DIR__ . '/autoload.php';
+VIDEOS_registerAutoloader();
 
 define('VIDEOS_PLUGIN_NAME', 'videos');
 
-$videosLanguage = $_CONF['path'] . 'plugins/videos/language/'
-    . $_CONF['language'] . '.php';
+$videosLanguage = __DIR__ . '/language/' . $_CONF['language'] . '.php';
 if (!file_exists($videosLanguage)) {
-    $videosLanguage = $_CONF['path']
-        . 'plugins/videos/language/english.php';
+    $videosLanguage = __DIR__ . '/language/english.php';
 }
 require_once $videosLanguage;
 
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_Validator.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_JsonStore.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_Logger.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_Privacy.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_Bootstrap.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_HttpClient.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_YouTubeClient.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_Quota.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_Cache.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_Moderation.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_VideoPolicy.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_PermanentPool.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_CacheMaintenance.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_KeywordExtractor.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_YouTubeService.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_DiscoveryReservoir.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_Visitor.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_PlaybackToken.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_RateLimiter.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_Engagement.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_RatingService.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_RatingStats.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_CatalogueSelector.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_VideoStats.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_RecommendationStats.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_ChannelRanking.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_Ranking.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_Recommendation.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_Description.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_Seo.php';
-require_once $_CONF['path'] . 'plugins/videos/classes/Videos_Faq.php';
-require_once $_CONF['path'] . 'plugins/videos/geeklog_integration.php';
-require_once $_CONF['path'] . 'plugins/videos/interoperability.php';
+require_once __DIR__ . '/geeklog_integration.php';
+require_once __DIR__ . '/interoperability.php';
+require_once __DIR__ . '/services.inc.php';
 
 $_VIDEOS_CONF = array();
 if (class_exists('config')) {
@@ -152,12 +124,12 @@ function plugin_upgrade_videos()
     }
     $codeVersion = plugin_chkVersion_videos();
 
-    require_once $_CONF['path'] . 'plugins/videos/autoinstall.php';
+    require_once __DIR__ . '/autoinstall.php';
     if (!plugin_compatible_with_this_version_videos('videos')) {
         return 3002;
     }
 
-    require_once $_CONF['path'] . 'plugins/videos/install_updates.php';
+    require_once __DIR__ . '/install_updates.php';
     if (!videos_apply_updates($installedVersion, $codeVersion)) {
         COM_errorLog(
             "Videos upgrade: no valid migration path from '"

@@ -1,10 +1,12 @@
 <?php
 
-if (!isset($_CONF)) {
+global $_CONF, $_TABLES, $_DB_table_prefix, $_PLUGINS, $_VIDEOS_CONF;
+
+if (!isset($GLOBALS['_CONF'])) {
     die('This file cannot be used on its own.');
 }
 
-require_once $_CONF['path'] . 'plugins/videos/version.php';
+require_once __DIR__ . '/version.php';
 
 function plugin_autoinstall_videos($pi_name)
 {
