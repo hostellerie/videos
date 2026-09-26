@@ -153,7 +153,16 @@ class Videos_Seo
             $header .= '<meta name="description" content="' . $this->escape($description) . '">' . "\n";
         }
         if (!empty($this->configuration['seo_social_metadata'])) {
-            $header .= $this->socialMetadata($canonical, $title, $description, $image, $videoUrl);
+            $socialDelegated = $this->delegateSocialMetadata(
+                $canonical,
+                $title,
+                $description,
+                $image,
+                $videoUrl
+            );
+            if (!$socialDelegated) {
+                $header .= $this->socialMetadata($canonical, $title, $description, $image, $videoUrl);
+            }
         }
         if ($structuredData !== '') {
             $header .= '<script type="application/ld+json">' . $structuredData . '</script>' . "\n";
@@ -169,6 +178,44 @@ class Videos_Seo
         }
         return '<meta name="robots" content="index,follow,'
             . 'max-snippet:-1,max-image-preview:large,max-video-preview:-1">' . "\n";
+    }
+
+    private function delegateSocialMetadata($canonical, $title, $description, $image, $videoUrl)
+    {
+        global $_PLUGINS;
+
+        if (!isset($_PLUGINS) || !is_array($_PLUGINS) || !in_array('ogp', $_PLUGINS, true)) {
+            return false;
+        }
+        if (!function_exists('OGP_registerSocialMetadata')) {
+            return false;
+        }
+
+        $metadata = array(
+            'title' => $title,
+            'description' => $description,
+            'url' => $canonical,
+            'type' => $videoUrl !== '' ? 'video.other' : 'website',
+            'twitter_card' => $image !== '' ? 'summary_large_image' : 'summary',
+            'plugin' => 'videos',
+            'subtype' => $videoUrl !== '' ? 'video' : 'listing'
+        );
+
+        if ($image !== '') {
+            $metadata['image'] = $image;
+            $metadata['image_alt'] = $title;
+        }
+
+        if ($videoUrl !== '') {
+            $safeVideoUrl = $this->safeUrl($videoUrl);
+            if ($safeVideoUrl !== '') {
+                $metadata['video'] = $safeVideoUrl;
+                $metadata['video_secure_url'] = $safeVideoUrl;
+                $metadata['video_type'] = 'text/html';
+            }
+        }
+
+        return OGP_registerSocialMetadata($metadata) === true;
     }
 
     private function socialMetadata($canonical, $title, $description, $image, $videoUrl)
