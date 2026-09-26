@@ -1,3 +1,15 @@
+# Videos 0.21.0 development notes
+
+Videos 0.21.0 introduces optional social-metadata delegation to the OGP plugin while preserving the existing standalone SEO output.
+
+## OGP interoperability
+
+- When an active OGP plugin exposes `OGP_registerSocialMetadata()`, Videos delegates Open Graph and Twitter/X metadata to OGP.
+- Video pages preserve the rich social contract: `video.other`, image and image alt text, `og:video`, `og:video:secure_url`, `og:video:type`, and large-image Twitter cards.
+- When OGP is absent or an older OGP release is installed, Videos continues to emit its current Open Graph and Twitter/X tags unchanged.
+- Videos remains authoritative for robots directives, canonical URLs, meta descriptions, `VideoObject` JSON-LD and FAQ structured data.
+- The integration remains PHP 5.6 compatible and does not add a hard dependency on OGP.
+
 # Videos 0.20.0 release notes
 
 Videos 0.20.0 is an architectural consolidation release focused on predictable public rendering, provider-neutral interoperability and safer long-term maintenance while preserving the transition compatibility target of Geeklog 2.1.1–2.2.2 and PHP 5.6–8.1.
