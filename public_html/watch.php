@@ -288,6 +288,24 @@ if (count($faqItems) > 0) {
     $html .= $faqService->render($faqItems, $LANG_VIDEOS['video_about_title']);
 }
 $html .= '</article>';
+
+/*
+ * Generic Geeklog public item extension point.
+ *
+ * Videos only announces that the full public video identified by
+ * videos:<youtube_video_id> is being displayed. Consumers such as Hub may
+ * contribute server-rendered contextual fragments without Videos depending
+ * on them.
+ */
+$itemDisplayFragments = PLG_itemDisplay((string) $videoId, 'videos');
+if (is_array($itemDisplayFragments)) {
+    foreach ($itemDisplayFragments as $itemDisplayFragment) {
+        if (is_string($itemDisplayFragment) && $itemDisplayFragment !== '') {
+            $html .= $itemDisplayFragment;
+        }
+    }
+}
+
 $html .= '<script src="https://www.youtube.com/iframe_api"></script>'
     . '<script src="' . htmlspecialchars($_CONF['site_url'] . '/videos/js/videos-player.js?v=' . rawurlencode(VIDEOS_PLUGIN_VERSION), ENT_QUOTES, 'UTF-8') . '"></script>'
     . '<script src="' . htmlspecialchars($_CONF['site_url'] . '/videos/js/videos-share.js?v=' . rawurlencode(VIDEOS_PLUGIN_VERSION), ENT_QUOTES, 'UTF-8') . '"></script>';
