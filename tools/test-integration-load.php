@@ -201,6 +201,35 @@ if (substr_count($adminActions, 'Videos_ExternalSync') < 3) {
     exit(1);
 }
 
+$watchSource = file_get_contents($_CONF['path'] . 'public_html/watch.php');
+if (!is_string($watchSource)) {
+    fwrite(STDERR, 'Unable to inspect public_html/watch.php.' . PHP_EOL);
+    exit(1);
+}
+foreach (array(
+    "PLG_itemDisplay((string) \$videoId, 'videos')",
+    "is_array(\$itemDisplayFragments)",
+    "\$html .= \$itemDisplayFragment;"
+) as $requiredItemDisplayContract) {
+    if (strpos($watchSource, $requiredItemDisplayContract) === false) {
+        fwrite(
+            STDERR,
+            'Missing public video item-display contract: '
+            . $requiredItemDisplayContract . PHP_EOL
+        );
+        exit(1);
+    }
+}
+if (strpos($watchSource, "PLG_itemDisplay((string) \$videoId, 'videos')")
+    < strpos($watchSource, "\$html .= '</article>';")) {
+    fwrite(
+        STDERR,
+        'Public video item-display hook must follow the primary video article.'
+        . PHP_EOL
+    );
+    exit(1);
+}
+
 require $_CONF['path'] . 'tools/test-item-info.php';
 
 echo 'Videos integration load: OK (' . count($schemaNames)
