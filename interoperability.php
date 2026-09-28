@@ -134,11 +134,15 @@ function VIDEOS_publicCollectionVideoIds($bootstrap)
         }
     }
 
-    if (!empty($_VIDEOS_CONF['permanent_pool_enabled'])) {
-        foreach (VIDEOS_publicPoolRecords($bootstrap) as $videoId => $poolItem) {
-            if (Videos_Validator::youtubeVideoId($videoId)) {
-                $ids[$videoId] = true;
-            }
+    /*
+     * Preserve the historical Item Info contract: the permanent editorial
+     * corpus remains enumerable even when its catalogue-mixing option is
+     * disabled. Consumers have relied on this since collection support was
+     * introduced.
+     */
+    foreach (VIDEOS_publicPoolRecords($bootstrap) as $videoId => $poolItem) {
+        if (Videos_Validator::youtubeVideoId($videoId)) {
+            $ids[$videoId] = true;
         }
     }
 
