@@ -201,6 +201,27 @@ if (substr_count($adminActions, 'Videos_ExternalSync') < 3) {
     exit(1);
 }
 
+$interopSource = file_get_contents($_CONF['path'] . 'interoperability.php');
+if (!is_string($interopSource)) {
+    fwrite(STDERR, 'Unable to inspect interoperability.php.' . PHP_EOL);
+    exit(1);
+}
+foreach (array(
+    'function VIDEOS_publicCollectionVideoIds',
+    "new Videos_DiscoveryReservoir(",
+    "VIDEOS_publicPoolRecords(\$bootstrap)",
+    "foreach (VIDEOS_publicCollectionVideoIds(\$bootstrap) as \$videoId)"
+) as $requiredCollectionContract) {
+    if (strpos($interopSource, $requiredCollectionContract) === false) {
+        fwrite(
+            STDERR,
+            'Missing Videos Item Info collection contract: '
+            . $requiredCollectionContract . PHP_EOL
+        );
+        exit(1);
+    }
+}
+
 $watchSource = file_get_contents($_CONF['path'] . 'public_html/watch.php');
 if (!is_string($watchSource)) {
     fwrite(STDERR, 'Unable to inspect public_html/watch.php.' . PHP_EOL);
