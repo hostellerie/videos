@@ -242,6 +242,21 @@ if (!empty($_VIDEOS_CONF['sharing_enabled'])) {
         . '</nav>';
 }
 
+$itemDisplay = '';
+if (function_exists('PLG_itemDisplay')) {
+    $itemDisplayParts = PLG_itemDisplay((string) $videoId, 'videos');
+    if (is_array($itemDisplayParts)) {
+        foreach ($itemDisplayParts as $itemDisplayPart) {
+            if (is_string($itemDisplayPart) && $itemDisplayPart !== '') {
+                $itemDisplay .= $itemDisplayPart;
+            }
+        }
+    }
+}
+if ($itemDisplay !== '') {
+    $html .= '<section class="videos-itemdisplay">' . $itemDisplay . '</section>';
+}
+
 if (count($nextVideos) > 0) {
     $html .= '<section id="videos-next-panel" class="videos-next-panel" aria-labelledby="videos-next-title"><h2 id="videos-next-title">'
         . htmlspecialchars($LANG_VIDEOS['next_video'], ENT_QUOTES, 'UTF-8') . '</h2><p>'
