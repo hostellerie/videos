@@ -105,6 +105,46 @@ function VIDEOS_publicPoolRecords($bootstrap)
         ? $records['items'] : array();
 }
 
+/**
+ * Return locally available videos that are eligible for the public catalogue.
+ *
+ * This collection is intentionally local-only: Hub and other Item Info
+ * consumers must never trigger YouTube provider traffic. Discovery-reservoir
+ * videos and the enabled permanent pool are merged and deduplicated.
+ */
+function VIDEOS_publicCollectionVideoIds($bootstrap)
+{
+    global $_VIDEOS_CONF;
+
+    $cache = new Videos_Cache($bootstrap->getStore());
+    $ids = array();
+
+    if (!empty($_VIDEOS_CONF['discovery_enabled'])) {
+        $reservoir = new Videos_DiscoveryReservoir(
+            $bootstrap->getStore(),
+            $cache
+        );
+        $videos = $reservoir->videos($_VIDEOS_CONF);
+        if (is_array($videos)) {
+            foreach ($videos as $videoId => $video) {
+                if (Videos_Validator::youtubeVideoId($videoId)) {
+                    $ids[$videoId] = true;
+                }
+            }
+        }
+    }
+
+    if (!empty($_VIDEOS_CONF['permanent_pool_enabled'])) {
+        foreach (VIDEOS_publicPoolRecords($bootstrap) as $videoId => $poolItem) {
+            if (Videos_Validator::youtubeVideoId($videoId)) {
+                $ids[$videoId] = true;
+            }
+        }
+    }
+
+    return array_keys($ids);
+}
+
 function VIDEOS_itemInfoRecord($videoId, $bootstrap, $poolItem = array())
 {
     if (!Videos_Validator::youtubeVideoId($videoId)) {
@@ -269,7 +309,8 @@ function plugin_getiteminfo_videos($id, $what, $uid = 0, $options = array())
     $limit = isset($options['limit']) ? max(1, min(500, (int) $options['limit'])) : 20;
     $order = isset($options['order']) ? (string) $options['order'] : 'modified-desc';
     $records = array();
-    foreach ($poolItems as $videoId => $poolItem) {
+    foreach (VIDEOS_publicCollectionVideoIds($bootstrap) as $videoId) {
+        $poolItem = isset($poolItems[$videoId]) ? $poolItems[$videoId] : array();
         $record = VIDEOS_itemInfoRecord($videoId, $bootstrap, $poolItem);
         if (empty($record)) {
             continue;
