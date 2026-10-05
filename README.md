@@ -42,7 +42,12 @@ dashboard.summary
 videos.channels.read
 videos.rankings.read
 videos.provider.status
+videos.recommendations.render
 ```
+
+### Specialized provider rendering
+
+Videos exposes `videos.recommendations.render` through the internal Geeklog action `recommendations_render`. Consumers such as Hub pass an explicit set of approved video IDs; Videos applies its own local visibility/moderation rules and reuses its existing card/block rendering and conditional CSS. The renderer never broadens the supplied relation set into unrelated recommendations.
 
 Videos implements `content.popular` through the shared Item Info contract. The normalized `hits` field maps to Videos' local qualified view count, and collections support `order=hits-desc`. Dedicated video/channel ranking services remain separate because they use richer scoring signals than simple popularity.
 
