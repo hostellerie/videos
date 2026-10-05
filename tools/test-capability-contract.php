@@ -56,11 +56,14 @@ if (strpos($services, "'public_runtime' => 'local-only'") === false) {
     exit(1);
 }
 
-if (strpos($services, "VIDEOS_renderBlock()") === false
+if (strpos($services, "VIDEOS_renderVideoBlock(") === false
+    || strpos($services, "VIDEOS_wrapBlockContent(") === false
+    || strpos($services, "VIDEOS_itemInfoRecord(") === false
     || strpos($services, "_VIDEOS_NEEDS_BLOCK_CSS") === false
     || strpos($services, "'provider_owned' => true") === false
+    || strpos($services, "isset($args['items'])") === false
 ) {
-    fwrite(STDERR, 'recommendation renderer does not reuse the provider-owned Videos engine.' . PHP_EOL);
+    fwrite(STDERR, 'recommendation renderer does not preserve approved provider-owned rendering boundaries.' . PHP_EOL);
     exit(1);
 }
 
