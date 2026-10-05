@@ -61,7 +61,7 @@ if (strpos($services, "VIDEOS_renderVideoBlock(") === false
     || strpos($services, "VIDEOS_itemInfoRecord(") === false
     || strpos($services, "_VIDEOS_NEEDS_BLOCK_CSS") === false
     || strpos($services, "'provider_owned' => true") === false
-    || strpos($services, "isset($args['items'])") === false
+    || strpos($services, "isset(\$args['items'])") === false
 ) {
     fwrite(STDERR, 'recommendation renderer does not preserve approved provider-owned rendering boundaries.' . PHP_EOL);
     exit(1);
