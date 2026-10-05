@@ -28,6 +28,22 @@ Version 0.19.0 is functionally complete.
 - CI validates PHP 5.6, 7.4 and 8.1 compatibility, storage regression behavior, Geeklog integration contracts, install/uninstall consistency and administration language coverage.
 - The duplicate `plugin_getfeedcontent_videos()` declaration was removed; the canonical implementation is in `interoperability.php`.
 
+## 0.21.0 — Hub-aware provider rendering
+
+Branch `videos_0.21.0` extends the existing provider-neutral interoperability layer without moving relationship ownership into Videos.
+
+Implemented:
+
+- declare `videos.recommendations.render` as a provider-owned render capability;
+- expose `service_recommendations_render_videos()` for trusted internal Geeklog service calls;
+- accept only the approved video identities supplied by the caller; an empty item set produces no output and never expands into unrelated global recommendations;
+- reuse Videos' existing local Item Info, moderation, cache, video-card/block presentation and conditional `block.css` loading;
+- keep Hub responsible for editorial relationship approval while Videos remains responsible for video visibility, rendering and presentation;
+- keep public rendering local-only and avoid new YouTube provider requests;
+- validate the renderer capability/service and packaged archive in CI.
+
+This service is the reference implementation for Hub 0.7.0 specialized provider rendering. It does not create a Hub dependency inside Videos; any trusted internal consumer may invoke the shared Geeklog service contract.
+
 ## 0.20.0 — architectural consolidation
 
 Version 0.20.0 is the active development branch. It is a simplification release, not a feature race. The objective is to reduce coupling and prepare the plugin for future common Geeklog integration services.
