@@ -535,7 +535,8 @@ function plugin_getcapabilities_videos()
             'dashboard.summary',
             'videos.channels.read',
             'videos.rankings.read',
-            'videos.provider.status'
+            'videos.provider.status',
+            'videos.recommendations.render'
         )
     );
 }
