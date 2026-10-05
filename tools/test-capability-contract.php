@@ -16,7 +16,8 @@ $requiredCapabilities = array(
     'dashboard.summary',
     'videos.channels.read',
     'videos.rankings.read',
-    'videos.provider.status'
+    'videos.provider.status',
+    'videos.recommendations.render'
 );
 
 foreach ($requiredCapabilities as $capability) {
@@ -30,7 +31,8 @@ $requiredServices = array(
     'service_dashboard_summary_videos',
     'service_channels_read_videos',
     'service_rankings_read_videos',
-    'service_provider_status_videos'
+    'service_provider_status_videos',
+    'service_recommendations_render_videos'
 );
 foreach ($requiredServices as $service) {
     if (strpos($services, 'function ' . $service . '(') === false) {
@@ -51,6 +53,14 @@ if (strpos($services, "SEC_hasRights('videos.admin')") === false) {
 
 if (strpos($services, "'public_runtime' => 'local-only'") === false) {
     fwrite(STDERR, 'provider status does not document the local-only public runtime.' . PHP_EOL);
+    exit(1);
+}
+
+if (strpos($services, "VIDEOS_renderBlock()") === false
+    || strpos($services, "_VIDEOS_NEEDS_BLOCK_CSS") === false
+    || strpos($services, "'provider_owned' => true") === false
+) {
+    fwrite(STDERR, 'recommendation renderer does not reuse the provider-owned Videos engine.' . PHP_EOL);
     exit(1);
 }
 
