@@ -276,10 +276,11 @@ function service_rankings_read_videos($args, &$output, &$svc_msg)
  */
 function service_recommendations_render_videos($args, &$output, &$svc_msg)
 {
-    global $_VIDEOS_CONF;
+    global $_CONF, $_VIDEOS_CONF, $LANG_VIDEOS;
 
     $output = array();
     $svc_msg = array();
+    $args = is_array($args) ? $args : array();
 
     if (VIDEOS_serviceRejectWeb($args, $svc_msg)) {
         return PLG_RET_AUTH_FAILED;
@@ -290,13 +291,75 @@ function service_recommendations_render_videos($args, &$output, &$svc_msg)
             'schema' => 1,
             'provider' => 'videos',
             'renderer' => 'recommendations',
+            'title' => VIDEOS_getPublicTitle(),
             'html' => '',
-            'empty' => true
+            'empty' => true,
+            'rendered_ids' => array()
         );
         return PLG_RET_OK;
     }
 
-    $html = function_exists('VIDEOS_renderBlock') ? VIDEOS_renderBlock() : '';
+    $requested = isset($args['items']) && is_array($args['items'])
+        ? $args['items'] : array();
+
+    // Specialized Hub rendering is approval-preserving: no supplied item set
+    // means no public recommendation output. Videos never broadens a Hub
+    // relation set into unrelated global recommendations.
+    if (empty($requested)) {
+        $output = array(
+            'schema' => 1,
+            'provider' => 'videos',
+            'renderer' => 'recommendations',
+            'title' => VIDEOS_getPublicTitle(),
+            'html' => '',
+            'empty' => true,
+            'rendered_ids' => array()
+        );
+        return PLG_RET_OK;
+    }
+
+    $bootstrap = VIDEOS_interopBootstrap();
+    if ($bootstrap === false) {
+        $svc_msg['error_desc'] = 'Videos local storage is not available.';
+        return PLG_RET_ERROR;
+    }
+
+    $store = $bootstrap->getStore();
+    $cache = new Videos_Cache($store);
+    $poolItems = VIDEOS_publicPoolRecords($bootstrap);
+    $selected = array();
+    $renderedIds = array();
+
+    foreach ($requested as $item) {
+        $videoId = is_array($item) && isset($item['id'])
+            ? trim((string) $item['id'])
+            : trim((string) $item);
+
+        if (!Videos_Validator::youtubeVideoId($videoId) || isset($selected[$videoId])) {
+            continue;
+        }
+
+        $record = VIDEOS_itemInfoRecord(
+            $videoId,
+            $bootstrap,
+            isset($poolItems[$videoId]) ? $poolItems[$videoId] : array()
+        );
+        if (empty($record)) {
+            continue;
+        }
+
+        $selected[$videoId] = array(
+            'title' => isset($record['title']) ? (string) $record['title'] : $videoId
+        );
+        $renderedIds[] = $videoId;
+    }
+
+    $html = '';
+    if (!empty($selected)) {
+        $html = VIDEOS_renderVideoBlock($selected, $cache, $_CONF, $LANG_VIDEOS);
+        $html = VIDEOS_wrapBlockContent($html, 'recommended', $LANG_VIDEOS);
+    }
+
     if ($html !== '') {
         $GLOBALS['_VIDEOS_NEEDS_BLOCK_CSS'] = true;
     }
@@ -305,8 +368,10 @@ function service_recommendations_render_videos($args, &$output, &$svc_msg)
         'schema' => 1,
         'provider' => 'videos',
         'renderer' => 'recommendations',
+        'title' => VIDEOS_getPublicTitle(),
         'html' => (string) $html,
         'empty' => ($html === ''),
+        'rendered_ids' => $renderedIds,
         'presentation' => array(
             'css' => 'block.css',
             'provider_owned' => true
