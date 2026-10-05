@@ -267,3 +267,51 @@ function service_rankings_read_videos($args, &$output, &$svc_msg)
 
     return PLG_RET_OK;
 }
+
+
+/**
+ * Provider-owned recommendation renderer for Hub and other trusted internal
+ * consumers. The existing Videos recommendation engine remains authoritative
+ * for selection, moderation, limits and presentation.
+ */
+function service_recommendations_render_videos($args, &$output, &$svc_msg)
+{
+    global $_VIDEOS_CONF;
+
+    $output = array();
+    $svc_msg = array();
+
+    if (VIDEOS_serviceRejectWeb($args, $svc_msg)) {
+        return PLG_RET_AUTH_FAILED;
+    }
+
+    if (isset($_VIDEOS_CONF['enabled']) && empty($_VIDEOS_CONF['enabled'])) {
+        $output = array(
+            'schema' => 1,
+            'provider' => 'videos',
+            'renderer' => 'recommendations',
+            'html' => '',
+            'empty' => true
+        );
+        return PLG_RET_OK;
+    }
+
+    $html = function_exists('VIDEOS_renderBlock') ? VIDEOS_renderBlock() : '';
+    if ($html !== '') {
+        $GLOBALS['_VIDEOS_NEEDS_BLOCK_CSS'] = true;
+    }
+
+    $output = array(
+        'schema' => 1,
+        'provider' => 'videos',
+        'renderer' => 'recommendations',
+        'html' => (string) $html,
+        'empty' => ($html === ''),
+        'presentation' => array(
+            'css' => 'block.css',
+            'provider_owned' => true
+        )
+    );
+
+    return PLG_RET_OK;
+}
