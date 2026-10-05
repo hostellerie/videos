@@ -223,6 +223,8 @@ jobs:
           unzip -p "dist/${ARCHIVE}" videos/interoperability.php | grep -Fq 'foreach (VIDEOS_publicCollectionVideoIds($bootstrap) as $videoId)'
           unzip -p "dist/${ARCHIVE}" videos/public_html/watch.php | grep -Fq "PLG_itemDisplay((string) \$videoId, 'videos')"
           unzip -p "dist/${ARCHIVE}" videos/services.inc.php | grep -Fq 'function service_dashboard_summary_videos('
+          unzip -p "dist/${ARCHIVE}" videos/services.inc.php | grep -Fq 'function service_recommendations_render_videos('
+          unzip -p "dist/${ARCHIVE}" videos/interoperability.php | grep -Fq "'videos.recommendations.render'"
           unzip -p "dist/${ARCHIVE}" videos/autoinstall.php | grep -Fq "'config.videos.tab_seo'"
           if [ "${GITHUB_REF_NAME}" = '0.20.0' ]; then
             unzip -p "dist/${ARCHIVE}" videos/feed_update.php | grep -Fq 'function plugin_feedupdatecheck_videos('
