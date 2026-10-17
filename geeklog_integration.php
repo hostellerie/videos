@@ -95,7 +95,11 @@ function plugin_dopluginsearch_videos(
         $titlesOnly,
         500
     );
-    $criteria->setResults($rows);
+    // Use Geeklog's callback API instead of preset rows. Preset rows can
+    // exhaust the page before Geeklog queries stories and other plugins.
+    $criteria->setCallback(function ($offset, $limit) use ($rows) {
+        return array_slice($rows, max(0, (int) $offset), max(0, (int) $limit));
+    });
     $criteria->setTotal(count($rows));
     $criteria->setRank(3);
     $criteria->setAppendQuery(false);
