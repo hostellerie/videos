@@ -213,9 +213,20 @@ class Videos_Search
                 ? trim((string) $snippet['channelTitle']) : '';
             $ranking = isset($match['ranking']) && is_array($match['ranking'])
                 ? $match['ranking'] : array();
+            // Preset rows bypass ListFactory::_fillRow(), so the source
+            // metadata normally added there must be supplied explicitly.
+            // LF_SOURCE_TITLE = 0 and LF_SOURCE_NAME = 1 in Geeklog.
+            $url = plugin_idtourl_videos('', $videoId);
+            if (!is_string($url) || trim($url) === '') {
+                $url = rtrim($GLOBALS['_CONF']['site_url'], '/')
+                    . '/videos/watch.php?v=' . rawurlencode($videoId);
+            }
             $rows[] = array(
+                0 => isset($GLOBALS['LANG_VIDEOS']['search_type_label'])
+                    ? $GLOBALS['LANG_VIDEOS']['search_type_label'] : 'Videos',
+                1 => 'videos',
                 'id' => $videoId,
-                'url' => plugin_idtourl_videos('', $videoId),
+                'url' => $url,
                 'title' => $title,
                 'description' => $description,
                 'date' => $published === false ? 'LF_NULL' : (int) $published,
