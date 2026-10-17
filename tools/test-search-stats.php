@@ -12,6 +12,7 @@ if (!class_exists('SearchCriteria')) {
         public $type;
         public $label;
         public $results = array();
+        public $callback = null;
         public $total = 0;
         public $rank = 0;
         public $appendQuery = true;
@@ -26,6 +27,11 @@ if (!class_exists('SearchCriteria')) {
         public function setResults($results)
         {
             $this->results = $results;
+        }
+
+        public function setCallback($callback)
+        {
+            $this->callback = is_callable($callback) ? $callback : null;
         }
 
         public function setTotal($total)
@@ -201,19 +207,23 @@ $criteria = plugin_dopluginsearch_videos(
 );
 if (!($criteria instanceof SearchCriteria) ||
     $criteria->total !== 1 ||
-    count($criteria->results) !== 1 ||
-    $criteria->results[0]['id'] !== 'BravoVid002' ||
-    !isset($criteria->results[0][0], $criteria->results[0][1]) ||
-    $criteria->results[0][1] !== 'videos' ||
-    !isset($criteria->results[0]['url']) ||
-    !is_string($criteria->results[0]['url']) ||
-    trim($criteria->results[0]['url']) === '' ||
-    !isset($criteria->results[0]['description']) ||
-    trim($criteria->results[0]['description']) === '' ||
+    count($criteria->results) !== 0 ||
+    !is_callable($criteria->callback) ||
     $criteria->rank !== 3 ||
     $criteria->appendQuery !== false ||
     $criteria->urlRewrite !== false) {
     $fail('Geeklog search callback did not return expected local result.');
+}
+$searchRows = call_user_func($criteria->callback, 0, 10);
+if (count($searchRows) !== 1 ||
+    $searchRows[0]['id'] !== 'BravoVid002' ||
+    !isset($searchRows[0][0], $searchRows[0][1]) ||
+    $searchRows[0][1] !== 'videos' ||
+    empty($searchRows[0]['url']) ||
+    empty($searchRows[0]['description']) ||
+    count(call_user_func($criteria->callback, 1, 10)) !== 0 ||
+    count(call_user_func($criteria->callback, 0, 0)) !== 0) {
+    $fail('Video search callback pagination or metadata is invalid.');
 }
 
 $criteria = plugin_dopluginsearch_videos(
@@ -227,7 +237,9 @@ $criteria = plugin_dopluginsearch_videos(
     1,
     10
 );
-if (!($criteria instanceof SearchCriteria) || $criteria->total !== 2) {
+if (!($criteria instanceof SearchCriteria) || $criteria->total !== 2 ||
+    count(call_user_func($criteria->callback, 0, 1)) !== 1 ||
+    count(call_user_func($criteria->callback, 1, 1)) !== 1) {
     $fail('Geeklog search callback did not search channel metadata.');
 }
 
@@ -261,7 +273,7 @@ $criteria = plugin_dopluginsearch_videos(
 );
 if (!($criteria instanceof SearchCriteria) ||
     $criteria->total !== 1 ||
-    $criteria->results[0]['id'] !== 'BravoVid002') {
+    call_user_func($criteria->callback, 0, 1)[0]['id'] !== 'BravoVid002') {
     $fail('Geeklog search date filtering failed.');
 }
 
