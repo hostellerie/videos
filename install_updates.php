@@ -252,8 +252,18 @@ $GLOBALS['VIDEOS_UPDATES'] = array(
     '0.19.0' => array(
         'next' => '0.20.0',
         'callback' => 'videos_update_0_19_0_to_0_20_0'
+    ),
+    '0.20.0' => array(
+        'next' => '0.21.0',
+        'callback' => 'videos_update_0_20_0_to_0_21_0'
     )
 );
+
+function videos_update_0_20_0_to_0_21_0()
+{
+    // Integration and search changes; no persistent-data migration needed.
+    return true;
+}
 
 function videos_update_0_19_0_to_0_20_0()
 {
