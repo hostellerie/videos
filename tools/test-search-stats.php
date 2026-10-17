@@ -187,6 +187,11 @@ if (!($criteria instanceof SearchCriteria) ||
     $criteria->total !== 1 ||
     count($criteria->results) !== 1 ||
     $criteria->results[0]['id'] !== 'BravoVid002' ||
+    !isset($criteria->results[0][0], $criteria->results[0][1]) ||
+    $criteria->results[0][1] !== 'videos' ||
+    !isset($criteria->results[0]['url']) ||
+    !is_string($criteria->results[0]['url']) ||
+    trim($criteria->results[0]['url']) === '' ||
     $criteria->rank !== 3 ||
     $criteria->appendQuery !== false ||
     $criteria->urlRewrite !== false) {
