@@ -5,6 +5,7 @@ $LANG_VIDEOS = array(
     'curation_failed' => 'Unable to save this editorial decision.',
     'curation_saved' => 'Editorial decision saved.',
     'search_type_label' => 'Videos',
+    'search_no_description' => 'No description available for this video.',
     'admin_title' => 'Videos administration',
     'public_title' => 'Videos',
     'my_videos' => 'My videos',
