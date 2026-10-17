@@ -2,6 +2,7 @@
 
 $LANG_VIDEOS = array(
     'plugin_name' => 'Vidéos',
+    'search_no_description' => 'Aucune description disponible pour cette vidéo.',
     'admin_title' => 'Administration des vidéos',
     'public_title' => 'Vidéos',
     'my_videos' => 'Mes vidéos',
