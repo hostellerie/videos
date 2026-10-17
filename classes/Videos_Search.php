@@ -136,6 +136,14 @@ class Videos_Search
                 ? trim(strip_tags((string) $snippet['description'])) : '';
             $channel = isset($snippet['channelTitle'])
                 ? trim((string) $snippet['channelTitle']) : '';
+            // Respect hidden mode while avoiding blank cleaned search excerpts.
+            $descriptionMode = isset($this->configuration['description_mode'])
+                ? $this->configuration['description_mode'] : 'clean';
+            if (trim((string) $description) === '' && $descriptionMode !== 'hidden') {
+                $description = isset($GLOBALS['LANG_VIDEOS']['search_no_description'])
+                    ? $GLOBALS['LANG_VIDEOS']['search_no_description']
+                    : 'No description available for this video.';
+            }
             $published = !empty($snippet['publishedAt'])
                 ? strtotime((string) $snippet['publishedAt']) : false;
             if ($start !== null && ($published === false || $published < $start)) {
