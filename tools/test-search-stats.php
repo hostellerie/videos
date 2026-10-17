@@ -192,6 +192,8 @@ if (!($criteria instanceof SearchCriteria) ||
     !isset($criteria->results[0]['url']) ||
     !is_string($criteria->results[0]['url']) ||
     trim($criteria->results[0]['url']) === '' ||
+    !isset($criteria->results[0]['description']) ||
+    trim($criteria->results[0]['description']) === '' ||
     $criteria->rank !== 3 ||
     $criteria->appendQuery !== false ||
     $criteria->urlRewrite !== false) {
