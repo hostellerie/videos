@@ -52,7 +52,7 @@ class Videos_Description
         foreach ($sentences as $sentence) {
             $sentence = trim(preg_replace('/\s+/u', ' ', $sentence));
             $length = $this->length($sentence);
-            if ($length < 35) {
+            if ($length === 0) {
                 $position++;
                 continue;
             }
