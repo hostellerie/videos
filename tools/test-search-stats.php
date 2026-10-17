@@ -67,6 +67,22 @@ VIDEOS_registerAutoloader();
 require_once $_CONF['path'] . 'interoperability.php';
 require_once $_CONF['path'] . 'geeklog_integration.php';
 
+// Short but informative YouTube descriptions must survive clean mode.
+$descriptionFilter = new Videos_Description();
+if ($descriptionFilter->excerpt('Presentation by Geeklog Japanese', 'clean')
+    !== 'Presentation by Geeklog Japanese') {
+    fwrite(STDERR, 'Short informative video description was removed.' . PHP_EOL);
+    exit(1);
+}
+if ($descriptionFilter->excerpt('Presentation by Geeklog Japanese', 'hidden') !== '') {
+    fwrite(STDERR, 'Hidden description mode is not respected.' . PHP_EOL);
+    exit(1);
+}
+if ($descriptionFilter->excerpt('Subscribe to my channel', 'clean') !== '') {
+    fwrite(STDERR, 'Promotional text unexpectedly passed clean mode.' . PHP_EOL);
+    exit(1);
+}
+
 $originalConf = $_CONF;
 $originalVideosConf = isset($GLOBALS['_VIDEOS_CONF'])
     ? $GLOBALS['_VIDEOS_CONF'] : null;
